@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - E-Mart</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="account-container">
+        <!-- Header -->
+        <header class="account-header">
+            <a href="../index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                Back to Shop
+            </a>
+            <h1>My Account</h1>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="account-nav">
+            <button class="nav-tab active" data-tab="profile">
+                <i class="fas fa-user"></i>
+                Profile
+            </button>
+            <button class="nav-tab" data-tab="orders">
+                <i class="fas fa-shopping-bag"></i>
+                Orders
+            </button>
+            <button class="nav-tab" data-tab="addresses">
+                <i class="fas fa-map-marker-alt"></i>
+                Addresses
+            </button>
+        </nav>
+
+        <!-- Profile Section -->
+        <section id="profile" class="account-section active">
+            <div class="section-header">
+                <h2>Profile Information</h2>
+                <button class="edit-btn" id="edit-profile-btn">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                </button>
+            </div>
+            
+            <form id="profile-form" class="account-form">
+                <div class="form-group">
+                    <label for="profile-name">Full Name</label>
+                    <input type="text" id="profile-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="profile-phone">Phone Number</label>
+                    <input type="tel" id="profile-phone" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="profile-email">Email Address</label>
+                    <input type="email" id="profile-email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="profile-birthdate">Date of Birth</label>
+                    <input type="date" id="profile-birthdate">
+                </div>
+                
+                <div class="form-group">
+                    <label for="profile-gender">Gender</label>
+                    <select id="profile-gender">
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Save Changes</button>
+                    <button type="button" class="cancel-btn" id="cancel-profile-btn">Cancel</button>
+                </div>
+            </form>
+            
+            <!-- Profile Statistics -->
+            <div class="profile-stats">
+                <h3>Account Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-orders">0</div>
+                        <div class="stat-label">Total Orders</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="saved-addresses">0</div>
+                        <div class="stat-label">Saved Addresses</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-date" id="last-order-date">Never</div>
+                        <div class="stat-label">Last Order</div>
+                    </div>
+                </div>
+            </div>
+            </form>
+        </section>
+
+        <!-- Orders Section -->
+        <section id="orders" class="account-section">
+            <div class="section-header">
+                <h2>Order History</h2>
+                <div class="order-filters">
+                    <select id="order-status-filter">
+                        <option value="">All Orders</option>
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="orders-list" class="orders-list">
+                <!-- Orders will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Addresses Section -->
+        <section id="addresses" class="account-section">
+            <div class="section-header">
+                <h2>Saved Addresses</h2>
+                <button class="add-btn" id="add-address-btn">
+                    <i class="fas fa-plus"></i>
+                    Add New Address
+                </button>
+            </div>
+            
+            <div id="addresses-list" class="addresses-list">
+                <!-- Addresses will be loaded here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Address Modal -->
+    <div id="address-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="address-modal-title">Add New Address</h3>
+                <button class="close-modal" id="close-address-modal">&times;</button>
+            </div>
+            
+            <form id="address-form" class="account-form" novalidate>
+                <div class="form-group">
+                    <label for="address-title">Address Title *</label>
+                    <input type="text" id="address-title" placeholder="e.g., Home, Office" required>
+                    <div class="error-message" id="title-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address-name">Full Name *</label>
+                    <input type="text" id="address-name" required>
+                    <div class="error-message" id="name-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address-phone">Phone Number *</label>
+                    <input type="tel" id="address-phone" required>
+                    <div class="error-message" id="phone-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address-street">Street Address *</label>
+                    <textarea id="address-street" rows="3" required></textarea>
+                    <div class="error-message" id="street-error"></div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="address-city">City *</label>
+                        <input type="text" id="address-city" required>
+                        <div class="error-message" id="city-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="address-postal">Postal Code *</label>
+                        <input type="text" id="address-postal" required>
+                        <div class="error-message" id="postal-error"></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address-type">Address Type *</label>
+                    <select id="address-type" required>
+                        <option value="">Select Type</option>
+                        <option value="home">Home</option>
+                        <option value="office">Office</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <div class="error-message" id="type-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="address-default">
+                        Set as default address
+                    </label>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Save Address</button>
+                    <button type="button" class="cancel-btn" id="cancel-address-btn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div id="order-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="order-modal-title">Order Details</h3>
+                <button class="close-modal" id="close-order-modal">&times;</button>
+            </div>
+            
+            <div id="order-details-content">
+                <!-- Order details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <a href="../index.html" class="bottom-nav-link">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="../index.html#categories" class="bottom-nav-link">
+            <i class="fas fa-th-large"></i>
+            <span>Category</span>
+        </a>
+        <a href="../cart/index.html" class="bottom-nav-link">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Cart</span>
+        </a>
+        <a href="#" class="bottom-nav-link active">
+            <i class="fas fa-user"></i>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html> 

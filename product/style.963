@@ -1,0 +1,21 @@
+@media (max-width: 600px) {
+    .bottom-nav.product-page-bottom-nav {
+        flex-wrap: nowrap; /* Prevent wrapping to keep them horizontal */
+        justify-content: space-between; /* Distribute space between items */
+        min-height: var(--bottom-nav-height, 60px); /* Keep default height */
+        padding: 0 10px; /* Consistent horizontal padding */
+    }
+    .bottom-nav-link {
+        font-size: 0.8rem;
+        padding: 5px;
+    }
+    .bottom-nav-link i {
+        font-size: 1.2rem;
+    }
+    .product-action-btn {
+        flex: 1 1 0; /* Ensure responsive flex behavior */
+        margin: 0; /* Remove margin, rely on parent gap */
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+    }
+} 

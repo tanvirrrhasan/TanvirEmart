@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart - Tanvir E-mart</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="cart-page-container">
+        <!-- Cart Sidebar - Re-purposed as main cart content for cart page -->
+        <div class="cart-sidebar active" id="cart-sidebar">
+            <div class="cart-header">
+                <h3>Shopping Cart</h3>
+                <button class="close-cart" id="close-cart">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+            </div>
+            <div class="cart-items" id="cart-items">
+                <!-- Cart items will be loaded here -->
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total:</span>
+                    <span id="cart-total">৳0</span>
+                </div>
+                <button class="checkout-btn" id="checkout-btn">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar - Included for easy navigation -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <a href="../index.html#banner" class="bottom-nav-link" id="nav-home"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="../index.html#categories" class="bottom-nav-link" id="nav-category"><i class="fas fa-th-large"></i><span>Category</span></a>
+        <a href="#" class="bottom-nav-link active" id="nav-cart"><i class="fas fa-shopping-cart"></i><span>Cart <span id="cart-count">0</span></span></a>
+        <a href="/account/" class="bottom-nav-link" id="nav-account"><i class="fas fa-user"></i><span>Account</span></a>
+    </nav>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html> 
