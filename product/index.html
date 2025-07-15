@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - Tanvir E-mart</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading product details...</p>
+    </div>
+
+    <!-- Header for Product Details Page -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <!-- Back Button instead of Store Name -->
+                    <button class="back-to-shop" id="back-to-shop"><i class="fas fa-arrow-left"></i></button>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="Search products...">
+                        <button id="search-btn"><i class="fas fa-search"></i></button>
+                    </div>
+                    <div class="mobile-menu-btn" id="mobile-menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu for Product Details Page (can be shared with main page styling) -->
+    <div class="mobile-menu" id="mobile-menu">
+        <nav class="mobile-nav">
+            <ul>
+                <li><a href="/public/index.html#banner" class="nav-link active">Home</a></li>
+                <li><a href="/public/index.html#products" class="nav-link">Products</a></li>
+                <li><a href="/public/index.html#categories" class="nav-link">Categories</a></li>
+                <li><a href="/public/index.html#about" class="nav-link">About</a></li>
+                <li><a href="/public/index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Main Content for Product Details -->
+    <main class="product-detail-main">
+        <div class="container">
+            <!-- Removed old back button as it's now in the header -->
+            <div id="product-details-content" class="product-details-content">
+                <!-- Product details will be dynamically loaded here -->
+            </div>
+            <div id="error-message" class="error-message" style="display:none;">Product not found or an error occurred.</div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation Bar for Product Page -->
+    <nav class="bottom-nav product-page-bottom-nav" id="product-bottom-nav">
+        <!-- Small Cart Button on the left -->
+        <a href="/public/cart/index.html" class="bottom-nav-link" id="nav-cart-product-page"><i class="fas fa-shopping-cart"></i></a>
+
+        <!-- Buy Now Button -->
+        <button class="product-action-btn buy-now-btn-bottom" id="buy-now-btn-bottom">
+            <i class="fas fa-money-bill-wave"></i> Buy Now
+        </button>
+        <!-- Add to Cart Button -->
+        <button class="product-action-btn add-to-cart-btn-bottom" id="add-to-cart-btn-bottom">
+            <i class="fas fa-cart-plus"></i> Add to Cart
+        </button>
+    </nav>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html> 

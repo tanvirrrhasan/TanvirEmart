@@ -1,0 +1,570 @@
+/* General Styles for Product Details Page */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #EFE9D5;
+    background-color: #27445D; /* Consistent with public side */
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px; /* Consistent with public side */
+}
+
+/* Header Styles */
+.header {
+    background: #497D74;
+    color: #EFE9D5;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(39,68,93,0.7);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0; /* Consistent with public side */
+}
+
+.logo h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-grow: 1; /* Allow header actions to take available space */
+}
+
+.search-box {
+    display: flex; /* Always visible in top bar */
+    align-items: center;
+    background: #5D9C90; /* Lighter background for visibility */
+    border-radius: 25px;
+    padding: 0.5rem;
+    flex-grow: 1; /* Allow search box to take available space */
+    margin-left: 0.8rem; /* Add a small margin to the left */
+}
+
+.search-box input {
+    background: transparent;
+    border: none;
+    color: #EFE9D5; /* Text color for input */
+    padding: 0.5rem;
+    width: 100%; /* Make input take full width of its container */
+    outline: none;
+}
+
+.search-box input::placeholder {
+    color: #EFE9D5;
+    opacity: 0.9; /* Make placeholder more visible */
+}
+
+.search-box button {
+    background: none;
+    border: none;
+    color: #EFE9D5; /* Icon color */
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.mobile-menu-btn {
+    display: block; /* Always show mobile menu button */
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* Mobile Menu / Sidebar */
+.mobile-menu {
+    display: block; /* Always block for the sidebar container */
+    position: fixed;
+    top: 48px; /* Start below the header */
+    right: -67vw; /* Hide off-screen to the right (approx 66% of viewport width) */
+    width: 66vw; /* Take 2/3rd of the viewport width */
+    height: calc(100% - 48px); /* Adjust height to fill remaining space */
+    background: #3B5D7A; /* Different background for sidebar */
+    box-shadow: -2px 0 10px rgba(0,0,0,0.3); /* Shadow for slide effect from right */
+    z-index: 999; /* Lower z-index than header so header remains on top */
+    transition: right 0.3s ease-in-out; /* Smooth slide transition */
+    padding-top: 0; /* No padding-top needed as it starts below header */
+}
+
+.mobile-menu.active {
+    right: 0; /* Slide in from right when active */
+}
+
+.mobile-menu .mobile-nav ul {
+    flex-direction: column; /* Stack nav items vertically */
+    gap: 0;
+    list-style: none; /* Remove bullet points */
+    padding: 0; /* Remove default padding for ul */
+}
+
+.mobile-menu .mobile-nav li {
+    margin: 0.5rem 0;
+}
+
+.mobile-menu .mobile-nav a {
+    padding: 0.8rem 1rem;
+    border-radius: 0;
+}
+
+/* Main Content */
+.product-detail-main {
+    padding-top: 48px; /* Adjust as needed for fixed header */
+    padding-bottom: 80px; /* Space for bottom nav */
+    min-height: 100vh; /* Ensure it takes full height */
+}
+
+/* Back to Shop Button (in header) */
+.header .back-to-shop {
+    background: none; /* No background */
+    color: #EFE9D5; /* Icon color */
+    border: none;
+    padding: 0.5rem; /* Adjusted padding */
+    border-radius: 50%; /* Make it round */
+    cursor: pointer;
+    font-size: 1.5rem; /* Match mobile menu button size */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease;
+}
+
+.header .back-to-shop:hover {
+    background: rgba(255,255,255,0.2); /* Subtle hover effect */
+}
+
+/* Existing Back to Shop Button (now removed from HTML) */
+.back-to-shop {
+    /* These styles are no longer directly used for the button in the header */
+    background: #497D74;
+    color: #EFE9D5;
+    border: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.3s ease;
+}
+
+.back-to-shop:hover {
+    background: #71BBB2;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(39,68,93,0.95); /* Darker overlay */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    color: #EFE9D5;
+    font-size: 1.2rem;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3; /* Light grey */
+    border-top: 4px solid #71BBB2; /* Primary color */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Product Details Content */
+.product-details-content {
+    display: grid;
+    grid-template-columns: 1fr; /* Default to single column for small screens */
+    gap: 30px;
+    background: #3B5D7A; /* Slightly lighter background for the card */
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+@media (min-width: 768px) {
+    .product-details-content {
+        grid-template-columns: 1fr 1fr; /* Two columns for larger screens */
+    }
+}
+
+.product-image-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.main-image-container {
+    width: 100%;
+    padding-top: 75%; /* 4:3 Aspect Ratio (height / width * 100) */
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #497D74; /* Placeholder background */
+}
+
+.main-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Use contain to show full image without cropping */
+    object-position: center; /* Center the image */
+}
+
+.thumbnail-gallery {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 5px; /* For scrollbar */
+}
+
+.thumbnail-gallery img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.thumbnail-gallery img.active,
+.thumbnail-gallery img:hover {
+    border-color: #EFE9D5;
+    transform: scale(1.05);
+}
+
+.product-info-section h1 {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    color: #EFE9D5;
+}
+
+.product-price-display {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #71BBB2; /* Accent color for price */
+    margin-bottom: 10px;
+}
+
+.product-regular-price-display {
+    text-decoration: line-through;
+    color: #B0B0B0;
+    font-size: 1.2rem;
+    margin-left: 10px;
+}
+
+.product-description-display {
+    color: #EFE9D5;
+    line-height: 1.7;
+    margin-bottom: 20px;
+}
+
+.product-variants-section {
+    margin-bottom: 20px;
+}
+
+.variant-option-group {
+    margin-bottom: 15px;
+}
+
+.variant-option-group h4 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    color: #EFE9D5;
+}
+
+.variant-options-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.variant-option-item {
+    background: #497D74;
+    color: #EFE9D5;
+    padding: 0.6rem 1rem;
+    border-radius: 25px;
+    cursor: pointer;
+    border: 1px solid #71BBB2;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.variant-option-item.selected,
+.variant-option-item:hover {
+    background: #71BBB2;
+    color: #27445D;
+}
+
+.product-stock-status {
+    margin-top: 15px;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.product-stock-status.in-stock {
+    color: #8BC34A; /* Green for in-stock */
+}
+
+.product-stock-status.out-of-stock {
+    color: #F44336; /* Red for out-of-stock */
+}
+
+.error-message {
+    text-align: center;
+    color: #EFE9D5;
+    font-size: 1.2rem;
+    margin-top: 50px;
+}
+
+/* Bottom Navigation Bar for Product Page */
+.bottom-nav.product-page-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #497D74;
+    color: #EFE9D5;
+    display: flex;
+    flex-direction: row; /* Explicitly set to row */
+    justify-content: space-between; /* Distribute items with space between */
+    align-items: center;
+    min-height: var(--bottom-nav-height, 60px);
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+    padding: 0 10px; /* Add some horizontal padding */
+    gap: 10px; /* Gap between items */
+}
+
+.bottom-nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #EFE9D5;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background 0.3s ease;
+    white-space: nowrap;
+    flex-shrink: 0; /* Prevent shrinking */
+    flex-grow: 0; /* Prevent growing */
+}
+
+.bottom-nav-link i {
+    font-size: 1.2rem;
+}
+
+.bottom-nav-link:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.product-action-btn {
+    background: #71BBB2;
+    color: #27445D;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center content within button */
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    flex: 1 1 0; /* Allow to grow and shrink, with initial basis 0 */
+}
+
+.product-action-btn:hover {
+    background: #5D9C90;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+/* Existing button styles */
+.add-to-cart-btn-bottom {
+    background: #71BBB2;
+}
+
+.add-to-cart-btn-bottom:hover {
+    background: #5D9C90;
+}
+
+.buy-now-btn-bottom {
+    background: #EFE9D5;
+    color: #27445D;
+}
+
+.buy-now-btn-bottom:hover {
+    background: #B0B0B0;
+}
+
+@media (max-width: 600px) {
+    .bottom-nav.product-page-bottom-nav {
+        display: flex; /* Ensure flex display */
+        flex-direction: row; /* Ensure horizontal direction */
+        flex-wrap: nowrap; /* Prevent wrapping */
+        justify-content: space-between; /* Distribute space between items */
+        align-items: center; /* Vertically align items */
+        min-height: var(--bottom-nav-height, 60px);
+        padding: 0 10px;
+        gap: 10px; /* Ensure gap is applied */
+    }
+    .bottom-nav-link {
+        font-size: 0.8rem;
+        padding: 5px;
+        flex-shrink: 0; /* Ensure it doesn't shrink */
+        flex-grow: 0; /* Ensure it doesn't grow */
+    }
+    .bottom-nav-link i {
+        font-size: 1.2rem;
+    }
+    .product-action-btn {
+        flex: 1 1 0; /* Ensure responsive flex behavior */
+        margin: 0; /* Remove any specific margin that might conflict */
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+    }
+}
+
+/* Responsive adjustments for header */
+@media (max-width: 900px) {
+    .header-content {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+    .header-actions {
+        flex-grow: 1;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+    .search-box {
+        width: auto;
+        flex-grow: 1;
+        margin-left: 0.5rem;
+    }
+    .search-box input {
+        width: 100%;
+    }
+    .mobile-menu-btn {
+        font-size: 1.5rem;
+        padding: 0.3rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .logo h1 {
+        font-size: 1.3rem;
+    }
+    .search-box {
+        width: auto;
+        flex-grow: 1;
+    }
+    .search-box input {
+        width: 100%;
+    }
+    .header-actions {
+        gap: 0.3rem;
+    }
+    .mobile-menu {
+        width: 66vw;
+        right: -67vw;
+        height: calc(100% - 48px);
+    }
+}
+
+@media (max-width: 480px) {
+    .logo h1 {
+        font-size: 1.2rem;
+    }
+    .search-box {
+        width: auto;
+        flex-grow: 1;
+    }
+    .search-box input {
+        width: 100%;
+    }
+    .mobile-menu {
+        width: 80vw;
+        right: -81vw;
+        height: calc(100% - 48px);
+    }
+    .mobile-menu.active {
+        right: 0;
+    }
+} 
+
+/* Category display */
+.product-category-display {
+  margin: 8px 0;
+  font-size: 1.05em;
+  color: #444;
+}
+
+/* Bullet/Features section */
+.product-bullets-section {
+  margin: 14px 0 8px 0;
+}
+.product-bullets-section ul {
+  margin: 6px 0 0 18px;
+  padding: 0;
+  list-style: disc inside;
+  color: #333;
+}
+.product-bullets-section li {
+  margin-bottom: 3px;
+  font-size: 0.98em;
+}
+
+/* Warranty display */
+.product-warranty-display {
+  margin: 8px 0;
+  font-size: 1.02em;
+  color: #2e7d32;
+} 

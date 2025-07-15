@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - E-Mart</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="checkout-container">
+        <header class="checkout-header">
+            <a href="../index.html" class="back-btn">← Back to Shop</a>
+            <h1>Checkout</h1>
+        </header>
+
+        <div class="checkout-content">
+            <div class="order-summary">
+                <h2>Order Summary</h2>
+                <div id="cart-items-summary"></div>
+                <div class="total-section">
+                    <div class="subtotal">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">৳0</span>
+                    </div>
+                    <div class="delivery-fee">
+                        <span>Delivery Fee:</span>
+                        <span id="delivery-fee">৳60</span>
+                    </div>
+                    <div class="total">
+                        <span>Total:</span>
+                        <span id="total">৳0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="customer-info">
+                <h2>Customer Information</h2>
+                <form id="checkout-form">
+                    <div class="form-group">
+                        <label for="customer-name">Full Name *</label>
+                        <input type="text" id="customer-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customer-phone">Phone Number *</label>
+                        <input type="tel" id="customer-phone" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customer-email">Email (Optional)</label>
+                        <input type="email" id="customer-email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="delivery-address">Delivery Address *</label>
+                        <div class="address-selection">
+                            <select id="saved-addresses" style="margin-bottom: 10px;">
+                                <option value="">Select Saved Address</option>
+                            </select>
+                            <textarea id="delivery-address" rows="3" required></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="payment-method">Payment Method *</label>
+                        <select id="payment-method" required>
+                            <option value="">Select Payment Method</option>
+                            <option value="cash_on_delivery">Cash on Delivery</option>
+                            <option value="bkash">bKash</option>
+                            <option value="nagad">Nagad</option>
+                            <option value="rocket">Rocket</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="mobile-number-group" style="display: none;">
+                        <label for="mobile-number">Mobile Number for Payment</label>
+                        <input type="tel" id="mobile-number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="order-notes">Order Notes (Optional)</label>
+                        <textarea id="order-notes" rows="2" placeholder="Any special instructions..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="place-order-btn">Place Order</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html> 
