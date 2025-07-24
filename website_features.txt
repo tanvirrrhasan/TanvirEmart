@@ -259,4 +259,4 @@ If you want to add a new feature or fix a bug, use this structure and feature li
 
 ---
 
-**With this expanded prompt, any developer or AI will have a deep, actionable understanding of the full public website, including all UI elements, user flows, business logic, and edge cases.** 
+**With this expanded prompt, any developer or AI will have a deep, actionable understanding of the full public website, including all UI elements, user flows, business logic, and edge cases.***
