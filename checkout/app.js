@@ -1,10 +1,16 @@
 import { db } from '../firebase-config.js';
-import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { auth } from '../firebase-config.js';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, getDoc, updateDoc, doc, increment } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 // Get cart data from localStorage
-let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let cart = JSON.parse(localStorage.getItem('cartForCheckout')) || []; // Use cartForCheckout
 let products = [];
 let userAddresses = [];
+// Get the source URL from localStorage or use referrer or default to index.html
+let referrerPage = localStorage.getItem('checkoutSource') || document.referrer || '../index.html';
+// Store the original referrer for breaking navigation loops
+let originalReferrer = '';
 
 // DOM elements
 const cartItemsSummary = document.getElementById('cart-items-summary');
@@ -15,8 +21,8 @@ const checkoutForm = document.getElementById('checkout-form');
 const paymentMethodSelect = document.getElementById('payment-method');
 const mobileNumberGroup = document.getElementById('mobile-number-group');
 const mobileNumberInput = document.getElementById('mobile-number');
-const savedAddressesSelect = document.getElementById('saved-addresses');
 const deliveryAddressTextarea = document.getElementById('delivery-address');
+const backBtn = document.querySelector('.back-btn');
 
 // Initialize checkout page
 document.addEventListener('DOMContentLoaded', () => {
@@ -28,10 +34,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
+    // Store original referrer if we came from a product page
+    if (document.referrer.includes('/product/') && !localStorage.getItem('originalReferrer')) {
+        // Find the referrer before the product page
+        originalReferrer = localStorage.getItem('productOriginalReferrer') || '../index.html';
+        localStorage.setItem('originalReferrer', originalReferrer);
+    }
+    
     loadCartProducts();
-    loadUserAddresses();
     updateOrderSummary();
     setupEventListeners();
+    initializeAuthForCheckout();
 });
 
 // Load product details for cart items
@@ -63,7 +76,7 @@ function updateOrderSummary() {
 
     // Display cart items
     cartItemsSummary.innerHTML = cart.map(item => `
-        <div class="cart-item-summary">
+        <div class="cart-item-summary" data-id="${item.id}">
             <div class="cart-item-image">
                 ${item.image 
                     ? `<img src="${item.image}" alt="${item.name}">`
@@ -73,14 +86,21 @@ function updateOrderSummary() {
             <div class="cart-item-details">
                 <div class="cart-item-name">${item.name}</div>
                 <div class="cart-item-price">৳${item.price}</div>
-                <div class="cart-item-quantity">Quantity: ${item.quantity}</div>
+                <div class="cart-item-quantity">
+                    <span>Quantity:</span>
+                    <div class="quantity-controls">
+                        <button class="quantity-btn decrease-qty" data-id="${item.id}">-</button>
+                        <span class="quantity-value">${item.quantity}</span>
+                        <button class="quantity-btn increase-qty" data-id="${item.id}">+</button>
+                    </div>
+                </div>
             </div>
         </div>
     `).join('');
 
     // Calculate totals
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const deliveryFee = 60;
+    const deliveryFee = 150;
     const total = subtotal + deliveryFee;
 
     subtotalElement.textContent = `৳${subtotal.toFixed(2)}`;
@@ -103,23 +123,70 @@ function setupEventListeners() {
     });
 
     // Saved address selection
-    savedAddressesSelect.addEventListener('change', (e) => {
-        const selectedAddressId = e.target.value;
-        if (selectedAddressId) {
-            const selectedAddress = userAddresses.find(addr => addr.id === selectedAddressId);
-            if (selectedAddress) {
-                const fullAddress = `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.postal}`;
-                deliveryAddressTextarea.value = fullAddress;
-            }
-        }
-    });
+    // This section is no longer needed as address fields are directly populated
+    // savedAddressesSelect.addEventListener('change', (e) => {
+    //     const selectedAddressId = e.target.value;
+    //     if (selectedAddressId) {
+    //         const selectedAddress = userAddresses.find(addr => addr.id === selectedAddressId);
+    //         if (selectedAddress) {
+    //             deliveryAddressTextarea.value = selectedAddress.street;
+    //         }
+    //     }
+    // });
 
     // Form submission
     checkoutForm.addEventListener('submit', handleOrderSubmission);
     
-    // Load saved profile data
-    loadSavedProfile();
+    // Quantity controls
+    cartItemsSummary.addEventListener('click', handleQuantityChange);
+
+    // Back button functionality
+    if (backBtn) {
+        backBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Clear the checkout source from localStorage
+            const checkoutSource = localStorage.getItem('checkoutSource');
+            localStorage.removeItem('checkoutSource');
+            
+            // If we're going back to a product page, we need to handle the loop
+            if (checkoutSource && checkoutSource.includes('/product/')) {
+                // Keep originalReferrer in localStorage so product page can use it
+                // The product page will clear it after use
+            } else {
+                // If not going to product page, clear originalReferrer
+                localStorage.removeItem('originalReferrer');
+            }
+            
+            window.location.href = referrerPage;
+        });
+    }
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
 }
+
+// Handle quantity changes
+function handleQuantityChange(e) {
+    const target = e.target;
+    if (target.classList.contains('quantity-btn')) {
+        const productId = target.dataset.id;
+        const change = target.classList.contains('increase-qty') ? 1 : -1;
+        updateQuantity(productId, change);
+    }
+}
+
+// Update item quantity
+function updateQuantity(productId, change) {
+    const itemIndex = cart.findIndex(item => item.id === productId);
+    if (itemIndex > -1) {
+        const newQuantity = cart[itemIndex].quantity + change;
+        if (newQuantity >= 1) {
+            cart[itemIndex].quantity = newQuantity;
+            localStorage.setItem('cartForCheckout', JSON.stringify(cart));
+            updateOrderSummary();
+        }
+    }
+}
+
 
 // Handle order submission
 async function handleOrderSubmission(e) {
@@ -135,18 +202,31 @@ async function handleOrderSubmission(e) {
         checkoutForm.classList.add('loading');
 
         // Get form data
+        const division = document.getElementById('division').value;
+        const district = document.getElementById('district').value;
+        const upazila = document.getElementById('upazila').value;
+        const street = document.getElementById('delivery-address').value;
+        const fullAddress = `Street: ${street}, Upazila: ${upazila}, District: ${district}, Division: ${division}`;
+
         const formData = {
+            userId: auth.currentUser.uid,
             customerName: document.getElementById('customer-name').value,
             customerPhone: document.getElementById('customer-phone').value,
             customerEmail: document.getElementById('customer-email').value || '',
-            deliveryAddress: document.getElementById('delivery-address').value,
+            deliveryAddress: fullAddress,
+            deliveryAddressDetails: {
+                division,
+                district,
+                upazila,
+                street
+            },
             paymentMethod: document.getElementById('payment-method').value,
             mobileNumber: document.getElementById('mobile-number').value || '',
             orderNotes: document.getElementById('order-notes').value || '',
             items: cart,
             subtotal: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-            deliveryFee: 60,
-            total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 60,
+            deliveryFee: 150,
+            total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 150,
             status: 'pending',
             createdAt: serverTimestamp(),
             orderNumber: generateOrderNumber()
@@ -161,10 +241,21 @@ async function handleOrderSubmission(e) {
         const orderRef = await addDoc(collection(db, 'orders'), formData);
         
         // Update user profile with order information
-        updateUserProfile(formData);
+        await updateUserProfile(formData);
         
-        // Clear cart
-        localStorage.removeItem('cart');
+        // Clear only the purchased items from the main cart
+        const mainCart = JSON.parse(localStorage.getItem('cart')) || [];
+        const purchasedItemIds = cart.map(item => item.id);
+        const updatedMainCart = mainCart.filter(item => !purchasedItemIds.includes(item.id));
+        localStorage.setItem('cart', JSON.stringify(updatedMainCart));
+
+        // Clear the temporary checkout cart
+        localStorage.removeItem('cartForCheckout');
+        
+        // Clear all navigation-related localStorage items
+        localStorage.removeItem('checkoutSource');
+        localStorage.removeItem('originalReferrer');
+        localStorage.removeItem('productOriginalReferrer');
         
         // Show success message
         showMessage('Order placed successfully! Your order number is: ' + formData.orderNumber, 'success');
@@ -186,13 +277,15 @@ async function handleOrderSubmission(e) {
 }
 
 // Load user addresses
-function loadUserAddresses() {
+async function loadUserAddresses() {
     try {
-        const savedAddresses = localStorage.getItem('userAddresses');
-        if (savedAddresses) {
-            userAddresses = JSON.parse(savedAddresses);
-            populateSavedAddresses();
-        }
+        const q = query(collection(db, 'users', auth.currentUser.uid, 'addresses'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        userAddresses = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        // populateSavedAddresses(); // This function is no longer needed
     } catch (error) {
         console.error('Error loading addresses:', error);
         userAddresses = [];
@@ -200,16 +293,17 @@ function loadUserAddresses() {
 }
 
 // Populate saved addresses dropdown
+// This function is no longer needed
 function populateSavedAddresses() {
     if (!userAddresses || userAddresses.length === 0) {
-        savedAddressesSelect.innerHTML = '<option value="">No saved addresses</option>';
+        // savedAddressesSelect.innerHTML = '<option value="">No saved addresses</option>'; // This element is removed
         return;
     }
     
-    savedAddressesSelect.innerHTML = '<option value="">Select Saved Address</option>' +
-        userAddresses.map(address => 
-            `<option value="${address.id}">${address.title} - ${address.name}</option>`
-        ).join('');
+    // savedAddressesSelect.innerHTML = '<option value="">Select Saved Address</option>' + // This element is removed
+    //     userAddresses.map(address => 
+    //         `<option value="${address.id}">${address.type} - ${address.street}</option>`
+    //     ).join('');
 }
 
 // Load saved profile data
@@ -228,44 +322,18 @@ function loadSavedProfile() {
 }
 
 // Update user profile with order information
-function updateUserProfile(orderData) {
+async function updateUserProfile(orderData) {
     try {
-        // Update profile with order information
-        const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-        const updatedProfile = {
-            ...currentProfile,
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        await updateDoc(userDocRef, {
             name: orderData.customerName,
             phone: orderData.customerPhone,
-            email: orderData.customerEmail || currentProfile.email || '',
-            lastOrderDate: new Date().toISOString(),
-            totalOrders: (currentProfile.totalOrders || 0) + 1
-        };
+            email: orderData.customerEmail,
+            lastOrderDate: serverTimestamp(),
+            totalOrders: increment(1),
+            lastAddress: orderData.deliveryAddressDetails // Save the last used address object
+        }, {merge: true});
         
-        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
-        
-        // Add delivery address to saved addresses if not exists
-        const currentAddresses = JSON.parse(localStorage.getItem('userAddresses') || '[]');
-        const addressExists = currentAddresses.some(addr => 
-            addr.street === orderData.deliveryAddress
-        );
-        
-        if (!addressExists && orderData.deliveryAddress) {
-            const newAddress = {
-                id: 'addr_' + Date.now(),
-                title: 'Last Order Address',
-                name: orderData.customerName,
-                phone: orderData.customerPhone,
-                street: orderData.deliveryAddress,
-                city: 'Dhaka', // Default city
-                postal: '1000', // Default postal code
-                type: 'other',
-                isDefault: false,
-                createdAt: new Date().toISOString()
-            };
-            
-            currentAddresses.push(newAddress);
-            localStorage.setItem('userAddresses', JSON.stringify(currentAddresses));
-        }
     } catch (error) {
         console.error('Error updating user profile:', error);
     }
@@ -300,3 +368,47 @@ function showMessage(message, type = 'success') {
         }
     }, 5000);
 } 
+
+function initializeAuthForCheckout() {
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            document.getElementById('login-prompt').style.display = 'none';
+            checkoutForm.style.display = 'block';
+            await loadProfileFromFirestore(user.uid);
+            await loadUserAddresses();
+        } else {
+            document.getElementById('login-prompt').style.display = 'block';
+            checkoutForm.style.display = 'none';
+        }
+    });
+}
+async function handleLogin() {
+    try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        console.error('Login error:', error);
+        showMessage('Failed to login. Please try again.', 'error');
+    }
+}
+async function loadProfileFromFirestore(uid) {
+    try {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        if (userDoc.exists()) {
+            const profile = userDoc.data();
+            document.getElementById('customer-name').value = profile.name || '';
+            document.getElementById('customer-phone').value = profile.phone || '';
+            document.getElementById('customer-email').value = profile.email || '';
+
+            // Populate address fields from last used address
+            if (profile.lastAddress) {
+                document.getElementById('division').value = profile.lastAddress.division || '';
+                document.getElementById('district').value = profile.lastAddress.district || '';
+                document.getElementById('upazila').value = profile.lastAddress.upazila || '';
+                document.getElementById('delivery-address').value = profile.lastAddress.street || '';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+    }
+}

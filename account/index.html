@@ -11,99 +11,83 @@
     <div class="account-container">
         <!-- Header -->
         <header class="account-header">
-            <a href="../index.html" class="back-btn">
-                <i class="fas fa-arrow-left"></i>
-                Back to Shop
-            </a>
             <h1>My Account</h1>
         </header>
 
-        <!-- Navigation Tabs -->
+        <!-- Profile Summary (Top Section) -->
+        <div class="profile-summary">
+            <div class="profile-picture">
+                <img id="profile-img" src="https://ui-avatars.com/api/?name=User" alt="Profile Picture">
+            </div>
+            <div class="profile-info">
+                <div class="profile-name-row">
+                    <span class="profile-name" id="profile-name-display">User Name</span>
+                </div>
+                <div class="profile-phone-row">
+                    <span class="profile-phone" id="profile-phone-display">+8801XXXXXXXXX</span>
+                    <button class="edit-btn" id="edit-profile-btn">
+                        <i class="fas fa-edit"></i>
+                        Edit Profile
+                    </button>
+                </div>
+                <div id="login-prompt" class="login-prompt" style="display: none;">
+                    <h3>Welcome Guest</h3>
+                    <p>Login to access your account details, orders, and addresses.</p>
+                    <button id="login-btn" class="login-btn">
+                        <i class="fab fa-google"></i> Login with Google
+                    </button>
+                </div>
+                <button id="logout-btn" class="logout-btn" style="display: none;">Logout</button>
+            </div>
+        </div>
+
+        <!-- Profile Modal (hidden by default) -->
+        <div id="profile-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Profile</h3>
+                    <button class="close-modal" id="close-profile-modal">&times;</button>
+                </div>
+                <form id="profile-form" class="account-form">
+                    <div class="form-group">
+                        <label for="profile-name">Full Name</label>
+                        <input type="text" id="profile-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-phone">Phone Number</label>
+                        <input type="tel" id="profile-phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-email">Email Address</label>
+                        <input type="email" id="profile-email">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-gender">Gender</label>
+                        <select id="profile-gender">
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="save-btn">Save Changes</button>
+                        <button type="button" class="cancel-btn" id="cancel-profile-btn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs (Orders & Addresses only) -->
         <nav class="account-nav">
-            <button class="nav-tab active" data-tab="profile">
-                <i class="fas fa-user"></i>
-                Profile
-            </button>
-            <button class="nav-tab" data-tab="orders">
+            <button class="nav-tab active" data-tab="orders">
                 <i class="fas fa-shopping-bag"></i>
                 Orders
             </button>
-            <button class="nav-tab" data-tab="addresses">
-                <i class="fas fa-map-marker-alt"></i>
-                Addresses
-            </button>
         </nav>
 
-        <!-- Profile Section -->
-        <section id="profile" class="account-section active">
-            <div class="section-header">
-                <h2>Profile Information</h2>
-                <button class="edit-btn" id="edit-profile-btn">
-                    <i class="fas fa-edit"></i>
-                    Edit
-                </button>
-            </div>
-            
-            <form id="profile-form" class="account-form">
-                <div class="form-group">
-                    <label for="profile-name">Full Name</label>
-                    <input type="text" id="profile-name" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="profile-phone">Phone Number</label>
-                    <input type="tel" id="profile-phone" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="profile-email">Email Address</label>
-                    <input type="email" id="profile-email">
-                </div>
-                
-                <div class="form-group">
-                    <label for="profile-birthdate">Date of Birth</label>
-                    <input type="date" id="profile-birthdate">
-                </div>
-                
-                <div class="form-group">
-                    <label for="profile-gender">Gender</label>
-                    <select id="profile-gender">
-                        <option value="">Select Gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="save-btn">Save Changes</button>
-                    <button type="button" class="cancel-btn" id="cancel-profile-btn">Cancel</button>
-                </div>
-            </form>
-            
-            <!-- Profile Statistics -->
-            <div class="profile-stats">
-                <h3>Account Statistics</h3>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-number" id="total-orders">0</div>
-                        <div class="stat-label">Total Orders</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="saved-addresses">0</div>
-                        <div class="stat-label">Saved Addresses</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-date" id="last-order-date">Never</div>
-                        <div class="stat-label">Last Order</div>
-                    </div>
-                </div>
-            </div>
-            </form>
-        </section>
-
         <!-- Orders Section -->
-        <section id="orders" class="account-section">
+        <section id="orders" class="account-section active">
             <div class="section-header">
                 <h2>Order History</h2>
                 <div class="order-filters">
@@ -118,99 +102,11 @@
                     </select>
                 </div>
             </div>
-            
             <div id="orders-list" class="orders-list">
                 <!-- Orders will be loaded here -->
             </div>
         </section>
 
-        <!-- Addresses Section -->
-        <section id="addresses" class="account-section">
-            <div class="section-header">
-                <h2>Saved Addresses</h2>
-                <button class="add-btn" id="add-address-btn">
-                    <i class="fas fa-plus"></i>
-                    Add New Address
-                </button>
-            </div>
-            
-            <div id="addresses-list" class="addresses-list">
-                <!-- Addresses will be loaded here -->
-            </div>
-        </section>
-    </div>
-
-    <!-- Address Modal -->
-    <div id="address-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="address-modal-title">Add New Address</h3>
-                <button class="close-modal" id="close-address-modal">&times;</button>
-            </div>
-            
-            <form id="address-form" class="account-form" novalidate>
-                <div class="form-group">
-                    <label for="address-title">Address Title *</label>
-                    <input type="text" id="address-title" placeholder="e.g., Home, Office" required>
-                    <div class="error-message" id="title-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="address-name">Full Name *</label>
-                    <input type="text" id="address-name" required>
-                    <div class="error-message" id="name-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="address-phone">Phone Number *</label>
-                    <input type="tel" id="address-phone" required>
-                    <div class="error-message" id="phone-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="address-street">Street Address *</label>
-                    <textarea id="address-street" rows="3" required></textarea>
-                    <div class="error-message" id="street-error"></div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="address-city">City *</label>
-                        <input type="text" id="address-city" required>
-                        <div class="error-message" id="city-error"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="address-postal">Postal Code *</label>
-                        <input type="text" id="address-postal" required>
-                        <div class="error-message" id="postal-error"></div>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="address-type">Address Type *</label>
-                    <select id="address-type" required>
-                        <option value="">Select Type</option>
-                        <option value="home">Home</option>
-                        <option value="office">Office</option>
-                        <option value="other">Other</option>
-                    </select>
-                    <div class="error-message" id="type-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="address-default">
-                        Set as default address
-                    </label>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="save-btn">Save Address</button>
-                    <button type="button" class="cancel-btn" id="cancel-address-btn">Cancel</button>
-                </div>
-            </form>
-        </div>
     </div>
 
     <!-- Order Details Modal -->

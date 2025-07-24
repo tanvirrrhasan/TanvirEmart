@@ -1,5 +1,7 @@
 import { db } from '../firebase-config.js';
-import { collection, getDocs, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { auth } from '../firebase-config.js';
+import { collection, getDocs, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 // Global variables
 let currentUser = null;
@@ -11,48 +13,72 @@ let editingAddressId = null;
 // DOM elements
 const navTabs = document.querySelectorAll('.nav-tab');
 const accountSections = document.querySelectorAll('.account-section');
-const profileForm = document.getElementById('profile-form');
+// Profile summary elements
+const profileNameDisplay = document.getElementById('profile-name-display');
+const profilePhoneDisplay = document.getElementById('profile-phone-display');
+const profileImg = document.getElementById('profile-img');
 const editProfileBtn = document.getElementById('edit-profile-btn');
+const profileModal = document.getElementById('profile-modal');
+const closeProfileModal = document.getElementById('close-profile-modal');
+const profileForm = document.getElementById('profile-form');
 const cancelProfileBtn = document.getElementById('cancel-profile-btn');
 const ordersList = document.getElementById('orders-list');
 const orderStatusFilter = document.getElementById('order-status-filter');
-const addressesList = document.getElementById('addresses-list');
-const addAddressBtn = document.getElementById('add-address-btn');
-const addressModal = document.getElementById('address-modal');
-const addressForm = document.getElementById('address-form');
-const closeAddressModal = document.getElementById('close-address-modal');
-const cancelAddressBtn = document.getElementById('cancel-address-btn');
 const orderModal = document.getElementById('order-modal');
 const closeOrderModal = document.getElementById('close-order-modal');
+const loginPrompt = document.getElementById('login-prompt');
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
 
 // Initialize account page
 document.addEventListener('DOMContentLoaded', () => {
-    initializeAccount();
     setupEventListeners();
+    initializeAuth();
 });
 
 // Initialize account functionality
-async function initializeAccount() {
-    try {
-        // For demo purposes, we'll use a mock user ID
-        // In a real app, this would come from authentication
-        const mockUserId = 'demo-user-123';
-        currentUser = { id: mockUserId };
-        
-        await Promise.all([
-            loadUserProfile(),
-            loadUserOrders(),
-            loadUserAddresses()
-        ]);
-        
-        renderProfile();
-        renderOrders();
-        renderAddresses();
-        
-    } catch (error) {
-        console.error('Error initializing account:', error);
-        showToast('Error loading account data', true);
-    }
+async function initializeAuth() {
+    onAuthStateChanged(auth, async (user) => {
+        currentUser = user;
+        if (user) {
+            loginPrompt.style.display = 'none';
+            document.querySelector('.account-nav').style.display = 'flex';
+            editProfileBtn.style.display = 'block';
+            logoutBtn.style.display = 'block';
+            const userDocRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userDocRef);
+            if (userSnap.exists()) {
+                userProfile = userSnap.data();
+            } else {
+                userProfile = {
+                    name: user.displayName || '',
+                    phone: user.phoneNumber || '',
+                    email: user.email || '',
+                    gender: '',
+                    updatedAt: serverTimestamp()
+                };
+                await setDoc(userDocRef, userProfile);
+            }
+            if (!userProfile.name) userProfile.name = user.displayName || '';
+            if (!userProfile.email) userProfile.email = user.email || '';
+            await loadUserOrders();
+            renderProfile();
+            renderOrders();
+            switchTab('orders');
+        } else {
+            loginPrompt.style.display = 'block';
+            document.querySelector('.account-nav').style.display = 'none';
+            accountSections.forEach(sec => sec.style.display = 'none');
+            editProfileBtn.style.display = 'none';
+            logoutBtn.style.display = 'none';
+            profileNameDisplay.textContent = 'Guest User';
+            profilePhoneDisplay.textContent = '';
+            profileImg.src = 'https://ui-avatars.com/api/?name=Guest';
+            userProfile = null;
+            userOrders = [];
+            userAddresses = [];
+        }
+    });
 }
 
 // Setup event listeners
@@ -65,38 +91,57 @@ function setupEventListeners() {
         });
     });
     
-    // Profile form
-    profileForm.addEventListener('submit', handleProfileSubmit);
-    editProfileBtn.addEventListener('click', enableProfileEditing);
-    cancelProfileBtn.addEventListener('click', cancelProfileEditing);
+    // Profile modal open/close
+    editProfileBtn.addEventListener('click', () => {
+        profileModal.style.display = 'flex';
+    });
+    closeProfileModal.addEventListener('click', () => {
+        profileModal.style.display = 'none';
+    });
+    cancelProfileBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        profileModal.style.display = 'none';
+        renderProfile();
+    });
+    // Close modal when clicking outside
+    profileModal.addEventListener('click', (e) => {
+        if (e.target === profileModal) profileModal.style.display = 'none';
+    });
+
+    // Profile form submit
+    profileForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = {
+            name: document.getElementById('profile-name').value,
+            phone: document.getElementById('profile-phone').value,
+            email: document.getElementById('profile-email').value,
+            gender: document.getElementById('profile-gender').value,
+            updatedAt: serverTimestamp()
+        };
+        try {
+            await updateDoc(doc(db, 'users', currentUser.uid), formData);
+            userProfile = { ...userProfile, ...formData };
+            renderProfile();
+            profileModal.style.display = 'none';
+            showToast('Profile updated successfully!');
+        } catch (error) {
+            showToast('Error updating profile', true);
+        }
+    });
     
     // Orders filter
     orderStatusFilter.addEventListener('change', filterOrders);
-    
-    // Address management
-    addAddressBtn.addEventListener('click', openAddressModal);
-    addressForm.addEventListener('submit', handleAddressSubmit);
-    closeAddressModal.addEventListener('click', closeAddressModalFunc);
-    cancelAddressBtn.addEventListener('click', closeAddressModalFunc);
-    
-    // Real-time validation for address form
-    const addressInputs = addressForm.querySelectorAll('input, select, textarea');
-    addressInputs.forEach(input => {
-        input.addEventListener('blur', validateAddressField);
-        input.addEventListener('input', clearAddressFieldError);
-    });
     
     // Order modal
     closeOrderModal.addEventListener('click', closeOrderModalFunc);
     
     // Close modals when clicking outside
-    addressModal.addEventListener('click', (e) => {
-        if (e.target === addressModal) closeAddressModalFunc();
-    });
-    
     orderModal.addEventListener('click', (e) => {
         if (e.target === orderModal) closeOrderModalFunc();
     });
+
+    loginBtn.addEventListener('click', handleLogin);
+    logoutBtn.addEventListener('click', handleLogout);
 }
 
 // Tab switching
@@ -119,125 +164,26 @@ function switchTab(tabName) {
 }
 
 // Profile Management
-async function loadUserProfile() {
-    try {
-        // In a real app, you'd query the user's profile from Firebase
-        // For demo, we'll use localStorage or create a default profile
-        const savedProfile = localStorage.getItem('userProfile');
-        if (savedProfile) {
-            userProfile = JSON.parse(savedProfile);
-        } else {
-            // Create default profile
-            userProfile = {
-                name: '',
-                phone: '',
-                email: '',
-                birthdate: '',
-                gender: ''
-            };
-        }
-    } catch (error) {
-        console.error('Error loading user profile:', error);
-        userProfile = {
-            name: '',
-            phone: '',
-            email: '',
-            birthdate: '',
-            gender: ''
-        };
-    }
-}
-
 function renderProfile() {
-    if (!userProfile) return;
-    
+    profileNameDisplay.textContent = userProfile.name || 'User Name';
+    profilePhoneDisplay.textContent = userProfile.phone || '+8801XXXXXXXXX';
+    profileImg.src = currentUser.photoURL || 'https://ui-avatars.com/api/?name=' + (userProfile.name || 'User');
+    // Populate modal form
     document.getElementById('profile-name').value = userProfile.name || '';
     document.getElementById('profile-phone').value = userProfile.phone || '';
     document.getElementById('profile-email').value = userProfile.email || '';
-    document.getElementById('profile-birthdate').value = userProfile.birthdate || '';
     document.getElementById('profile-gender').value = userProfile.gender || '';
-    
-    // Update profile statistics
-    updateProfileStats();
-    
-    // Disable form initially
-    disableProfileForm();
-}
-
-function enableProfileEditing() {
-    enableProfileForm();
-    editProfileBtn.style.display = 'none';
-    cancelProfileBtn.style.display = 'inline-block';
-}
-
-function cancelProfileEditing() {
-    renderProfile(); // Reset to original values
-    disableProfileForm();
-    editProfileBtn.style.display = 'inline-block';
-    cancelProfileBtn.style.display = 'none';
-}
-
-function enableProfileForm() {
-    const inputs = profileForm.querySelectorAll('input, select');
-    inputs.forEach(input => input.disabled = false);
-}
-
-function disableProfileForm() {
-    const inputs = profileForm.querySelectorAll('input, select');
-    inputs.forEach(input => input.disabled = true);
-}
-
-async function handleProfileSubmit(e) {
-    e.preventDefault();
-    
-    const formData = {
-        name: document.getElementById('profile-name').value,
-        phone: document.getElementById('profile-phone').value,
-        email: document.getElementById('profile-email').value,
-        birthdate: document.getElementById('profile-birthdate').value,
-        gender: document.getElementById('profile-gender').value,
-        updatedAt: serverTimestamp()
-    };
-    
-    try {
-        // In a real app, you'd save to Firebase
-        // For demo, we'll save to localStorage
-        localStorage.setItem('userProfile', JSON.stringify(formData));
-        userProfile = formData;
-        
-        disableProfileForm();
-        editProfileBtn.style.display = 'inline-block';
-        cancelProfileBtn.style.display = 'none';
-        
-        // Update statistics after profile update
-        updateProfileStats();
-        
-        showToast('Profile updated successfully!');
-    } catch (error) {
-        console.error('Error updating profile:', error);
-        showToast('Error updating profile', true);
-    }
 }
 
 // Orders Management
 async function loadUserOrders() {
     try {
-        // In a real app, you'd query orders for the current user
-        // For demo, we'll get all orders and filter by phone number
-        const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'orders'), where('userId', '==', currentUser.uid), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
-        
         userOrders = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-        
-        // Filter orders by user's phone number (if profile exists)
-        if (userProfile && userProfile.phone) {
-            userOrders = userOrders.filter(order => 
-                order.customerPhone === userProfile.phone
-            );
-        }
     } catch (error) {
         console.error('Error loading orders:', error);
         userOrders = [];
@@ -325,226 +271,6 @@ function filterOrders() {
     `).join('');
 }
 
-// Address Management
-async function loadUserAddresses() {
-    try {
-        // In a real app, you'd query addresses for the current user
-        // For demo, we'll use localStorage
-        const savedAddresses = localStorage.getItem('userAddresses');
-        console.log('Loading addresses from localStorage:', savedAddresses);
-        
-        if (savedAddresses) {
-            userAddresses = JSON.parse(savedAddresses);
-            console.log('Parsed addresses:', userAddresses);
-        } else {
-            userAddresses = [];
-            console.log('No saved addresses found, initializing empty array');
-        }
-    } catch (error) {
-        console.error('Error loading addresses:', error);
-        userAddresses = [];
-    }
-}
-
-function renderAddresses() {
-    console.log('Rendering addresses:', userAddresses);
-    
-    if (!userAddresses || userAddresses.length === 0) {
-        addressesList.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-map-marker-alt"></i>
-                <h3>No Addresses Saved</h3>
-                <p>Add your first address to get started</p>
-            </div>
-        `;
-        return;
-    }
-    
-    addressesList.innerHTML = userAddresses.map(address => `
-        <div class="address-card ${address.isDefault ? 'default' : ''}">
-            <div class="address-header">
-                <div class="address-title">${address.title}</div>
-                <span class="address-type">${address.type}</span>
-            </div>
-            
-            <div class="address-content">
-                <div class="address-name">${address.name}</div>
-                <div class="address-phone">${address.phone}</div>
-                <div class="address-street">${address.street}</div>
-                <div class="address-street">${address.city}, ${address.postal}</div>
-            </div>
-            
-            <div class="address-actions">
-                <button class="edit-address-btn" onclick="editAddress('${address.id}')">
-                    Edit
-                </button>
-                <button class="delete-address-btn" onclick="deleteAddress('${address.id}')">
-                    Delete
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function openAddressModal(addressId = null) {
-    editingAddressId = addressId;
-    
-    if (addressId) {
-        // Edit existing address
-        const address = userAddresses.find(addr => addr.id === addressId);
-        if (address) {
-            document.getElementById('address-modal-title').textContent = 'Edit Address';
-            document.getElementById('address-title').value = address.title;
-            document.getElementById('address-name').value = address.name;
-            document.getElementById('address-phone').value = address.phone;
-            document.getElementById('address-street').value = address.street;
-            document.getElementById('address-city').value = address.city;
-            document.getElementById('address-postal').value = address.postal;
-            document.getElementById('address-type').value = address.type;
-            document.getElementById('address-default').checked = address.isDefault;
-        }
-    } else {
-        // Add new address
-        document.getElementById('address-modal-title').textContent = 'Add New Address';
-        addressForm.reset();
-    }
-    
-    addressModal.style.display = 'flex';
-}
-
-function closeAddressModalFunc() {
-    console.log('Closing address modal');
-    addressModal.style.display = 'none';
-    editingAddressId = null;
-    addressForm.reset();
-    
-    // Clear any validation messages
-    const errorMessages = addressForm.querySelectorAll('.error-message');
-    errorMessages.forEach(msg => msg.remove());
-}
-
-async function handleAddressSubmit(e) {
-    e.preventDefault();
-    
-    // Get form values
-    const title = document.getElementById('address-title').value.trim();
-    const name = document.getElementById('address-name').value.trim();
-    const phone = document.getElementById('address-phone').value.trim();
-    const street = document.getElementById('address-street').value.trim();
-    const city = document.getElementById('address-city').value.trim();
-    const postal = document.getElementById('address-postal').value.trim();
-    const type = document.getElementById('address-type').value;
-    const isDefault = document.getElementById('address-default').checked;
-    
-    // Clear previous error messages
-    const errorElements = document.querySelectorAll('.error-message');
-    errorElements.forEach(el => {
-        el.textContent = '';
-        el.classList.remove('show');
-    });
-    
-    // Validate required fields
-    let hasErrors = false;
-    
-    if (!title) {
-        document.getElementById('title-error').textContent = 'Address title is required';
-        document.getElementById('title-error').classList.add('show');
-        hasErrors = true;
-    }
-    
-    if (!name) {
-        document.getElementById('name-error').textContent = 'Full name is required';
-        document.getElementById('name-error').classList.add('show');
-        hasErrors = true;
-    }
-    
-    if (!phone) {
-        document.getElementById('phone-error').textContent = 'Phone number is required';
-        document.getElementById('phone-error').classList.add('show');
-        hasErrors = true;
-    }
-    
-    if (!street) {
-        document.getElementById('street-error').textContent = 'Street address is required';
-        document.getElementById('street-error').classList.add('show');
-        hasErrors = true;
-    }
-    
-    if (!city) {
-        document.getElementById('city-error').textContent = 'City is required';
-        document.getElementById('city-error').classList.add('show');
-        hasErrors = true;
-    }
-    
-    if (!postal) {
-        document.getElementById('postal-error').textContent = 'Postal code is required';
-        document.getElementById('postal-error').classList.add('show');
-        hasErrors = true;
-    }
-    
-    if (!type) {
-        document.getElementById('type-error').textContent = 'Address type is required';
-        document.getElementById('type-error').classList.add('show');
-        hasErrors = true;
-    }
-    
-    if (hasErrors) {
-        showToast('Please fix the validation errors', true);
-        return;
-    }
-    
-    const formData = {
-        title: title,
-        name: name,
-        phone: phone,
-        street: street,
-        city: city,
-        postal: postal,
-        type: type,
-        isDefault: isDefault,
-        createdAt: new Date().toISOString()
-    };
-    
-    try {
-        if (editingAddressId) {
-            // Update existing address
-            const index = userAddresses.findIndex(addr => addr.id === editingAddressId);
-            if (index !== -1) {
-                userAddresses[index] = { ...userAddresses[index], ...formData };
-            }
-        } else {
-            // Add new address
-            formData.id = 'addr_' + Date.now();
-            userAddresses.push(formData);
-        }
-        
-        // Handle default address
-        if (formData.isDefault) {
-            userAddresses.forEach(addr => {
-                if (addr.id !== formData.id) {
-                    addr.isDefault = false;
-                }
-            });
-        }
-        
-        // Save to localStorage
-        localStorage.setItem('userAddresses', JSON.stringify(userAddresses));
-        
-        // Debug logging
-        console.log('Addresses saved:', userAddresses);
-        console.log('LocalStorage check:', localStorage.getItem('userAddresses'));
-        
-        renderAddresses();
-        updateProfileStats(); // Update statistics after address change
-        closeAddressModalFunc();
-        showToast(editingAddressId ? 'Address updated successfully!' : 'Address added successfully!');
-        
-    } catch (error) {
-        console.error('Error saving address:', error);
-        showToast('Error saving address: ' + error.message, true);
-    }
-}
-
 // Order Details Modal
 function viewOrderDetails(orderId) {
     const order = userOrders.find(o => o.id === orderId);
@@ -602,33 +328,6 @@ function closeOrderModalFunc() {
     orderModal.style.display = 'none';
 }
 
-// Update profile statistics
-function updateProfileStats() {
-    // Total orders
-    const totalOrders = userProfile.totalOrders || userOrders.length;
-    document.getElementById('total-orders').textContent = totalOrders;
-    
-    // Saved addresses
-    document.getElementById('saved-addresses').textContent = userAddresses.length;
-    
-    // Last order date
-    const lastOrderDate = userProfile.lastOrderDate;
-    if (lastOrderDate) {
-        try {
-            const date = new Date(lastOrderDate);
-            document.getElementById('last-order-date').textContent = date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            });
-        } catch (error) {
-            document.getElementById('last-order-date').textContent = 'Never';
-        }
-    } else {
-        document.getElementById('last-order-date').textContent = 'Never';
-    }
-}
-
 // Utility Functions
 function formatDate(timestamp) {
     if (!timestamp) return 'N/A';
@@ -684,40 +383,28 @@ function validateAddressField(e) {
     let errorMessage = '';
     
     switch (fieldId) {
-        case 'address-title':
+        case 'address-division':
             if (!value) {
                 isValid = false;
-                errorMessage = 'Address title is required';
+                errorMessage = 'Division is required';
             }
             break;
-        case 'address-name':
+        case 'address-district':
             if (!value) {
                 isValid = false;
-                errorMessage = 'Full name is required';
+                errorMessage = 'District is required';
             }
             break;
-        case 'address-phone':
+        case 'address-upazila':
             if (!value) {
                 isValid = false;
-                errorMessage = 'Phone number is required';
+                errorMessage = 'Upazila is required';
             }
             break;
         case 'address-street':
             if (!value) {
                 isValid = false;
                 errorMessage = 'Street address is required';
-            }
-            break;
-        case 'address-city':
-            if (!value) {
-                isValid = false;
-                errorMessage = 'City is required';
-            }
-            break;
-        case 'address-postal':
-            if (!value) {
-                isValid = false;
-                errorMessage = 'Postal code is required';
             }
             break;
         case 'address-type':
@@ -749,14 +436,30 @@ function clearAddressFieldError(e) {
 // Global functions for onclick handlers
 window.viewOrderDetails = viewOrderDetails;
 window.editAddress = openAddressModal;
+async function handleLogin() {
+    try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        console.error('Login error:', error);
+        showToast('Failed to login. Please try again.', true);
+    }
+}
+async function handleLogout() {
+    try {
+        await signOut(auth);
+        showToast('Logged out successfully');
+    } catch (error) {
+        console.error('Logout error:', error);
+        showToast('Failed to logout', true);
+    }
+}
 window.deleteAddress = async (addressId) => {
     if (!confirm('Are you sure you want to delete this address?')) return;
-    
     try {
+        await deleteDoc(doc(db, 'users', currentUser.uid, 'addresses', addressId));
         userAddresses = userAddresses.filter(addr => addr.id !== addressId);
-        localStorage.setItem('userAddresses', JSON.stringify(userAddresses));
         renderAddresses();
-        updateProfileStats(); // Update statistics after address deletion
         showToast('Address deleted successfully!');
     } catch (error) {
         console.error('Error deleting address:', error);

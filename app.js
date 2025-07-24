@@ -187,9 +187,7 @@ function renderBannerCarousel(urls) {
     if (!urls || urls.length === 0) return;
     bannerContent.innerHTML = `
         <div class="banner-carousel">
-            <button class="banner-carousel-arrow left" style="display:${urls.length > 1 ? 'block' : 'none'}" aria-label="Previous banner">&lt;</button>
             <img src="${urls[0]}" class="banner-carousel-img" alt="Banner">
-            <button class="banner-carousel-arrow right" style="display:${urls.length > 1 ? 'block' : 'none'}" aria-label="Next banner">&gt;</button>
             <div class="banner-carousel-dots">
                 ${urls.map((_,i)=>`<button class="banner-carousel-dot${i===0?' active':''}" data-index="${i}"></button>`).join('')}
             </div>
@@ -202,8 +200,6 @@ function renderBannerCarousel(urls) {
 function setupBannerCarousel(urls) {
     const carousel = bannerContent.querySelector('.banner-carousel');
     const img = carousel.querySelector('.banner-carousel-img');
-    const left = carousel.querySelector('.banner-carousel-arrow.left');
-    const right = carousel.querySelector('.banner-carousel-arrow.right');
     const dots = Array.from(carousel.querySelectorAll('.banner-carousel-dot'));
 
     function show(idx) {
@@ -219,8 +215,6 @@ function setupBannerCarousel(urls) {
     function prev() { show(bannerCarouselIndex-1); }
     function goto(i) { show(i); }
 
-    if (left) left.onclick = prev;
-    if (right) right.onclick = next;
     dots.forEach((dot,i)=>dot.onclick=()=>goto(i));
 
     // Auto-play
@@ -241,6 +235,42 @@ function setupBannerCarousel(urls) {
         }
         startX = null;
     });
+
+    // Mouse drag for desktop
+    let isDragging = false;
+    let dragStartX = null;
+    let dragCurrentX = null;
+
+    img.addEventListener('mousedown', e => {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragCurrentX = e.clientX;
+        img.style.cursor = 'grabbing';
+        // Prevent default image drag
+        e.preventDefault();
+    });
+    img.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        dragCurrentX = e.clientX;
+    });
+    img.addEventListener('mouseup', e => {
+        if (!isDragging) return;
+        let dx = dragCurrentX - dragStartX;
+        if (Math.abs(dx) > 40) {
+            if (dx > 0) prev(); else next();
+        }
+        isDragging = false;
+        dragStartX = null;
+        dragCurrentX = null;
+        img.style.cursor = '';
+    });
+    img.addEventListener('mouseleave', e => {
+        if (!isDragging) return;
+        isDragging = false;
+        dragStartX = null;
+        dragCurrentX = null;
+        img.style.cursor = '';
+    });
 }
 
 // Render products
@@ -258,9 +288,12 @@ function renderProducts(productsToRender = products) {
     productsGrid.innerHTML = productsToRender.map(product => `
         <div class="product-card" data-product-id="${product.id}">
             <div class="product-image">
-                ${product.imageUrls && product.imageUrls.length > 0 
-                    ? `<img src="${product.imageUrls[0]}" alt="${product.name}" loading="lazy">`
-                    : '<div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #999;">No Image</div>'
+                ${product.thumbnailUrl
+                    ? `<img src="${product.thumbnailUrl}" alt="${product.name}" loading="lazy">`
+                    : (product.secondaryImageUrls && product.secondaryImageUrls.length > 0
+                        ? `<img src="${product.secondaryImageUrls[0]}" alt="${product.name}" loading="lazy">`
+                        : '<div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #999;">No Image</div>'
+                    )
                 }
             </div>
             <div class="product-info">
@@ -297,18 +330,29 @@ function renderProducts(productsToRender = products) {
 
 // Render categories
 function renderCategories() {
-    if (categoriesGrid) {
-        categoriesGrid.innerHTML = categories.map(category => `
-            <div class="category-card" data-category-name="${category.name}">
-                <h3>${category.name}</h3>
-            </div>
-        `).join('');
-        document.querySelectorAll('.category-card').forEach(card => {
-            card.addEventListener('click', () => {
-                filterByCategory(card.dataset.categoryName);
-            });
-        });
-    }
+    categoriesGrid.innerHTML = '';
+    // Add "All" category card first
+    const allCard = document.createElement('div');
+    allCard.className = 'category-card';
+    allCard.innerHTML = `
+        <a href="#" onclick="filterByCategory(''); return false;">
+            <img src="https://cdn-icons-png.flaticon.com/512/2910/2910791.png" alt="All">
+            <span>All</span>
+        </a>
+    `;
+    categoriesGrid.appendChild(allCard);
+
+    categories.forEach(category => {
+        const categoryCard = document.createElement('div');
+        categoryCard.className = 'category-card';
+        categoryCard.innerHTML = `
+            <a href="#" onclick="filterByCategory('${category.name}'); return false;">
+                <img src="${category.imageUrl || 'https://via.placeholder.com/100'}" alt="${category.name}">
+                <span>${category.name}</span>
+            </a>
+        `;
+        categoriesGrid.appendChild(categoryCard);
+    });
 }
 
 // Populate filter dropdowns
@@ -327,7 +371,15 @@ function filterProducts() {
     const selectedSort = sortFilter ? sortFilter.value : 'newest';
 
     if (selectedCategory) {
-        filtered = filtered.filter(product => product.category === selectedCategory);
+        filtered = filtered.filter(product => {
+            // Support both array and string for categories
+            if (Array.isArray(product.categories)) {
+                return product.categories.includes(selectedCategory);
+            } else if (product.category) {
+                return product.category === selectedCategory;
+            }
+            return false;
+        });
     }
 
     switch (selectedSort) {
@@ -352,11 +404,14 @@ function filterProducts() {
 // Handle search
 function handleSearch() {
     const searchTerm = searchInput.value.toLowerCase();
-    const filtered = products.filter(product =>
-        product.name.toLowerCase().includes(searchTerm) ||
-        product.description.toLowerCase().includes(searchTerm) ||
-        product.category.toLowerCase().includes(searchTerm)
-    );
+    const filtered = products.filter(product => {
+        const categoriesArr = Array.isArray(product.categories) ? product.categories : [product.category];
+        return (
+            product.name.toLowerCase().includes(searchTerm) ||
+            product.description.toLowerCase().includes(searchTerm) ||
+            (categoriesArr && categoriesArr.some(cat => cat && cat.toLowerCase().includes(searchTerm)))
+        );
+    });
     renderProducts(filtered);
 }
 
@@ -521,10 +576,9 @@ function handleNavigation(e) {
     const targetId = this.getAttribute('href').substring(1); // Get the ID from href (e.g., #products -> products)
     const targetElement = document.getElementById(targetId);
 
-    console.log('handleNavigation called for:', targetId);
-
     if (targetElement) {
         // Smooth scroll to the target section
+        // The scroll position will be correctly offset by the `scroll-padding-top` in CSS
         targetElement.scrollIntoView({
             behavior: 'smooth',
             block: 'start'
@@ -532,11 +586,10 @@ function handleNavigation(e) {
 
         // Close mobile menu after navigation on mobile
         if (mobileMenu && mobileMenu.classList.contains('active')) {
-            console.log('Calling toggleMobileMenu from handleNavigation');
-            toggleMobileMenu(); // Call toggleMobileMenu to close it and revert icon
+            toggleMobileMenu();
         }
 
-        // Update active class for nav links (optional, based on your CSS for active state)
+        // Update active class for nav links
         document.querySelectorAll('.nav-link').forEach(link => {
             link.classList.remove('active');
         });
@@ -597,30 +650,36 @@ window.filterByCategory = filterByCategory;
 // Bottom Navigation Bar Logic
 function setupBottomNav() {
     const navLinks = document.querySelectorAll('.bottom-nav-link');
-    navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            // Remove active from all
-            navLinks.forEach(l => l.classList.remove('active'));
-            this.classList.add('active');
+    const cartCountSpan = document.getElementById('cart-count'); // This will now be null, so we'll handle it.
 
-            // Handle navigation - prevent default if it's a hash link that might scroll
-            const href = this.getAttribute('href');
-            if (href.startsWith('#')) {
-                e.preventDefault(); // Prevent default anchor behavior
-                const target = document.querySelector(href);
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            } 
-            // No special case for cart here, as it's a direct page navigation now
-            // else if (href === '#cart-sidebar') {
-            //     toggleCart(); 
-            // }
+    // Update cart count on the nav bar
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    
+    // The cart-count span is removed from the home page, so this is no longer needed here.
+    // if (cartCountSpan) {
+    //     cartCountSpan.textContent = totalItems;
+    // }
+
+    // Logic to set the active tab
+    const setActiveTab = () => {
+        const currentPath = window.location.pathname;
+        navLinks.forEach(link => {
+            link.classList.remove('active');
         });
-    });
+        let found = false;
+        for (const section of sections) {
+            const el = document.querySelector(section.id);
+            if (el && el.offsetTop - 80 <= scrollY) {
+                const nav = document.querySelector(section.nav);
+                if (nav) nav.classList.add('active');
+                found = true;
+            }
+        }
+        if (!found) {
+            navLinks.forEach(l => l.classList.remove('active'));
+        }
+    };
 
     // Highlight nav based on scroll position (for Home, Category)
     window.addEventListener('scroll', () => {
@@ -630,19 +689,7 @@ function setupBottomNav() {
             { id: '#categories', nav: '#nav-category' },
             { id: '#products', nav: '#nav-home' },
         ];
-        let found = false;
-        for (const section of sections) {
-            const el = document.querySelector(section.id);
-            if (el && el.offsetTop - 80 <= scrollY) {
-                navLinks.forEach(l => l.classList.remove('active'));
-                const nav = document.querySelector(section.nav);
-                if (nav) nav.classList.add('active');
-                found = true;
-            }
-        }
-        if (!found) {
-            navLinks.forEach(l => l.classList.remove('active'));
-        }
+        setActiveTab();
     });
 }
 

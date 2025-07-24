@@ -1,0 +1,262 @@
+# E Mart Public Website Features & Functionality (Prompt)
+
+তুমি এখন Tanvir E-Mart (public side) ওয়েবসাইটের একজন সিনিয়র ডেভেলপার বা AI। নিচের ফোল্ডার ও ফাইল বিশ্লেষণ করে, প্রতিটি পেজে কী কী ফিচার আছে, কীভাবে কাজ করে, কোন ফোল্ডারে কী আছে, সবকিছু ডিটেইলসে লিখে দাও।
+
+---
+
+## মূল ফোল্ডার ও ফাইলসমূহ
+- **index.html, app.js, style.css**: হোমপেজ ও গ্লোবাল ফিচার
+- **product/**: প্রোডাক্ট ডিটেইলস পেজ
+- **cart/**: কার্ট পেজ
+- **checkout/**: চেকআউট পেজ
+- **account/**: ইউজার অ্যাকাউন্ট/অর্ডার পেজ
+- **category/**: ক্যাটাগরি সংক্রান্ত ফাইল (ডিটেইলস লিখো)
+- **components/**: রিইউজেবল কম্পোনেন্ট (ডিটেইলস লিখো)
+
+---
+
+## প্রতিটি পেজ ও ফিচার বিশ্লেষণ
+
+### ১. হোমপেজ (index.html, app.js)
+- **Header:** লোগো, সার্চ বক্স, মোবাইল মেনু বাটন
+- **Mobile Menu:** হোম, প্রোডাক্ট, ক্যাটাগরি, অ্যাবাউট, কন্টাক্ট লিঙ্ক
+- **Banner Section:** ডাইনামিক ব্যানার ইমেজ (app.js থেকে লোড হয়)
+- **Categories Section:** সব ক্যাটাগরি ডাইনামিকভাবে দেখানো হয়
+- **Products Section:**
+  - সব প্রোডাক্ট লোড হয় (Firebase থেকে)
+  - ক্যাটাগরি ও সোর্ট ফিল্টার
+  - সার্চ ফিচার
+  - প্রোডাক্ট কার্ড: ছবি, নাম, দাম, ক্যাটাগরি, Add to Cart, View Details
+- **About Section:** কোম্পানি পরিচিতি, ফিচার (Fast Delivery, Secure Payment, 24/7 Support)
+- **Footer:** কুইক লিঙ্ক, সোশ্যাল লিঙ্ক, কপিরাইট
+- **Bottom Navigation Bar:** হোম, ক্যাটাগরি, কার্ট, অ্যাকাউন্ট
+- **Smooth Scroll, Responsive Design**
+
+### ২. প্রোডাক্ট ডিটেইলস (product/index.html, product/app.js)
+- **ডাইনামিক প্রোডাক্ট ডিটেইলস:**
+  - ছবি গ্যালারি, নাম, দাম, ডিসক্রিপশন, ক্যাটাগরি, ভ্যারিয়েন্ট, স্টক স্ট্যাটাস, বুলেট ফিচার, ওয়ারেন্টি
+- **Buy Now, Add to Cart বাটন**
+- **Bottom Nav:** কার্ট, Buy Now, Add to Cart
+- **Back to Home/Products লিঙ্ক
+
+### ৩. কার্ট (cart/index.html, cart/app.js)
+- **কার্ট আইটেম লিস্ট:** নাম, ছবি, দাম, কোয়ান্টিটি, রিমুভ
+- **Total Price, Checkout বাটন**
+- **কার্ট ডেটা localStorage-এ সংরক্ষণ**
+- **Bottom Nav:** হোম, ক্যাটাগরি, কার্ট, অ্যাকাউন্ট
+
+### ৪. চেকআউট (checkout/index.html, checkout/app.js)
+- **ডেলিভারি এড্রেস ফর্ম**
+- **অর্ডার সামারি**
+- **পেমেন্ট অপশন (ডিটেইলস লিখো)**
+- **অর্ডার কনফার্মেশন**
+
+### ৫. অ্যাকাউন্ট (account/index.html, account/app.js)
+- **গুগল লগইন/লগআউট**
+- **প্রোফাইল দেখানো ও এডিট**
+- **অর্ডার হিস্ট্রি:** ফিল্টার, অর্ডার ডিটেইলস, স্ট্যাটাস
+- **Bottom Nav:** হোম, ক্যাটাগরি, কার্ট, অ্যাকাউন্ট
+
+### ৬. ক্যাটাগরি (category/)
+- **ক্যাটাগরি ভিত্তিক প্রোডাক্ট ব্রাউজিং (ডিটেইলস লিখো)**
+
+### ৭. কম্পোনেন্টস (components/)
+- **রিইউজেবল UI কম্পোনেন্ট (যেমন: বাটন, কার্ড, মডাল ইত্যাদি, ডিটেইলস লিখো)**
+
+---
+
+## টেকনিক্যাল ফিচার
+- **Firebase Firestore:** প্রোডাক্ট, অর্ডার, ইউজার ডেটা
+- **Firebase Auth:** গুগল লগইন
+- **Firebase Storage:** প্রোডাক্ট ইমেজ
+- **localStorage:** কার্ট ডেটা
+- **SPA ফিল:** মেনু, ন্যাভিগেশন, স্মুথ স্ক্রল
+- **Responsive Design:** মোবাইল ও ডেস্কটপ সাপোর্ট
+
+---
+
+## টাস্ক
+তুমি যদি নতুন ফিচার বা বাগ ফিক্স করতে চাও, এই স্ট্রাকচার ও ফিচার লিস্ট দেখে বুঝে নিতে পারো কোন ফাইলে কী করতে হবে।
+
+---
+
+**[এই prompt-এর মাধ্যমে অন্য কোনো ডেভেলপার বা AI-কে পুরো সাইটের ফিচার ও স্ট্রাকচার বুঝিয়ে যেকোনো কাজ/পরিবর্তন/বাগ ফিক্স/নতুন ফিচার ডেভেলপমেন্টের জন্য নির্দেশনা দিতে পারবে]** 
+
+---
+
+# Prompt (English)
+
+You are now a senior developer or AI assistant for the public side of the Tanvir E-Mart website. Analyze the following folder and file structure, and describe in detail what features exist on each page, how they work, and what is contained in each folder. Your goal is to provide a comprehensive technical overview so that any developer or AI can understand the full scope and functionality of the site, and know where to make changes or add new features.
+
+## Main Folders and Files
+- **index.html, app.js, style.css**: Home page and global features
+- **product/**: Product details page
+- **cart/**: Shopping cart page
+- **checkout/**: Checkout page
+- **account/**: User account and order history page
+- **category/**: Category-related files (describe details)
+- **components/**: Reusable UI components (describe details)
+
+---
+
+## Page-by-Page and Feature Analysis
+
+### 1. Home Page (index.html, app.js)
+- **Header:** Logo, search box, mobile menu button
+- **Mobile Menu:** Links to Home, Products, Categories, About, Contact
+- **Banner Section:** Dynamic banner images loaded via app.js
+- **Categories Section:** All categories displayed dynamically
+- **Products Section:**
+  - All products loaded from Firebase
+  - Category and sort filters
+  - Search functionality
+  - Product cards: image, name, price, category, Add to Cart, View Details
+- **About Section:** Company info, features (Fast Delivery, Secure Payment, 24/7 Support)
+- **Footer:** Quick links, social links, copyright
+- **Bottom Navigation Bar:** Home, Category, Cart, Account
+- **Smooth scroll, responsive design**
+
+### 2. Product Details (product/index.html, product/app.js)
+- **Dynamic product details:**
+  - Image gallery, name, price, description, category, variants, stock status, bullet features, warranty
+- **Buy Now, Add to Cart buttons**
+- **Bottom Nav:** Cart, Buy Now, Add to Cart
+- **Back to Home/Products link**
+
+### 3. Cart (cart/index.html, cart/app.js)
+- **Cart item list:** name, image, price, quantity, remove
+- **Total price, Checkout button**
+- **Cart data stored in localStorage**
+- **Bottom Nav:** Home, Category, Cart, Account
+
+### 4. Checkout (checkout/index.html, checkout/app.js)
+- **Delivery address form**
+- **Order summary**
+- **Payment options (describe details)**
+- **Order confirmation**
+
+### 5. Account (account/index.html, account/app.js)
+- **Google login/logout**
+- **Profile display and edit**
+- **Order history:** filter, order details, status
+- **Bottom Nav:** Home, Category, Cart, Account
+
+### 6. Category (category/)
+- **Category-based product browsing (describe details)**
+
+### 7. Components (components/)
+- **Reusable UI components (e.g., buttons, cards, modals, etc.; describe details)**
+
+---
+
+## Technical Features
+- **Firebase Firestore:** Product, order, and user data
+- **Firebase Auth:** Google login
+- **Firebase Storage:** Product images
+- **localStorage:** Cart data
+- **SPA feel:** Menu, navigation, smooth scroll
+- **Responsive design:** Mobile and desktop support
+
+---
+
+## Task
+If you want to add a new feature or fix a bug, use this structure and feature list to understand which file or folder to work in. This prompt is designed to help any developer or AI quickly onboard and make changes, improvements, or fixes to the public website.
+
+**[With this prompt, any developer or AI can fully understand the site's features and structure, and use it as a guide for any kind of work, change, bug fix, or new feature development.]** 
+
+---
+
+## Expanded Detailed Prompt (English)
+
+### 1. Home Page (`index.html`, `app.js`, `style.css`)
+- **Header:** Fixed at the top, includes site logo, search box (with instant search and enter key support), and a mobile menu button.
+- **Mobile Menu:** Slide-in sidebar with navigation links to Home, Products, Categories, About, and Contact. Closes automatically after navigation.
+- **Banner Section:** Dynamically loads promotional banners from Firebase Storage.
+- **Categories Section:** Fetches all product categories from Firestore and displays them in a responsive grid. Clicking a category filters products.
+- **Products Section:**
+  - Loads all products from Firestore, supports filtering by category and sorting (newest, price, name).
+  - Search bar filters products in real-time.
+  - Each product card shows image(s), name, price (with discount/regular price), category, and two buttons: Add to Cart and View Details.
+  - Add to Cart updates localStorage and shows a toast notification.
+  - View Details navigates to the product details page, saving scroll position for smooth back navigation.
+- **About Section:** Static content about the company, with icons and descriptions for Fast Delivery, Secure Payment, and 24/7 Support.
+- **Footer:** Contains quick links, social media icons, and copyright.
+- **Bottom Navigation Bar:** Fixed at the bottom for mobile, with icons for Home, Category, Cart, and Account. Highlights the current section based on scroll position.
+- **Responsive Design:** All layouts adapt to mobile, tablet, and desktop.
+- **Smooth Scroll:** All anchor links use smooth scrolling.
+
+### 2. Product Details Page (`product/index.html`, `product/app.js`, `product/style.css`)
+- **Header:** Back button (context-aware: returns to previous page or home), search box, and mobile menu.
+- **Dynamic Product Details:**
+  - Fetches product by ID from Firestore.
+  - Image gallery with main image and clickable thumbnails.
+  - Product name, price (with regular price if discounted), description, category, and warranty.
+  - Variant selectors for color and size (if available), with UI feedback for selection.
+  - Stock status (in stock/out of stock) with color coding.
+  - Bullet-pointed feature list.
+- **Add to Cart:** Adds the current product (with selected variants) to localStorage cart, with quantity management.
+- **Buy Now:** Creates a temporary cart with only this product and redirects to checkout.
+- **Bottom Navigation:** Cart button, Buy Now, and Add to Cart buttons always visible.
+- **Edge Cases:** Handles missing product, out-of-stock, and missing images gracefully with user feedback.
+
+### 3. Cart Page (`cart/index.html`, `cart/app.js`, `cart/style.css`)
+- **Cart Sidebar:** Main content area lists all cart items with image, name, price, quantity controls (+/-), and remove button.
+- **Selection:** Each item can be selected/deselected for checkout.
+- **Total Calculation:** Only selected items are included in the total price.
+- **Checkout Button:** Proceeds to checkout with only selected items.
+- **Custom Modal:** Confirmation dialog for removing items.
+- **Cart Persistence:** All cart data is stored in localStorage and synced across pages.
+- **Empty State:** Shows a friendly message if the cart is empty.
+- **Bottom Navigation:** Same as home page for consistency.
+
+### 4. Checkout Page (`checkout/index.html`, `checkout/app.js`, `checkout/style.css`)
+- **Order Summary:** Lists all selected cart items with image, name, price, and quantity controls (can adjust quantity here).
+- **Customer Information Form:** Collects name, phone, email, and full address (division, district, upazila, street).
+- **Payment Method:** Dropdown for Cash on Delivery, bKash, Nagad, Rocket. If mobile banking is selected, shows extra input for payment number.
+- **Order Notes:** Optional field for special instructions.
+- **Validation:** All required fields are validated before submission.
+- **Google Login:** Required for placing an order; prompts login if not authenticated.
+- **Order Submission:** Saves order to Firestore, updates user profile, clears purchased items from cart, and redirects to a success page.
+- **Edge Cases:** Handles empty cart, failed order, and login errors with user feedback.
+
+### 5. Account Page (`account/index.html`, `account/app.js`, `account/style.css`)
+- **Profile Summary:** Shows user’s name, phone, email, and profile picture (from Google or generated avatar).
+- **Edit Profile:** Modal form to update name, phone, email, and gender. Updates Firestore and UI in real-time.
+- **Google Login/Logout:** Handles authentication state, shows login prompt for guests, and logout button for authenticated users.
+- **Order History:** Lists all past orders with order number, date, status, item count, and total. Filter by status (pending, confirmed, shipped, delivered, cancelled).
+- **Order Details Modal:** Shows full order breakdown, customer info, items, payment method, and notes.
+- **Edge Cases:** Handles no orders, failed profile update, and login/logout errors.
+
+### 6. Category Page (`category/`)
+- **Category Browsing:** (If implemented) Allows users to browse products filtered by category, with similar UI to the main product grid.
+- **Edge Cases:** Handles empty categories and navigation from other pages.
+
+### 7. Components (`components/`)
+- **Reusable UI Components:** (If implemented) Includes shared elements like buttons, modals, cards, loaders, and possibly form elements, styled for consistency across the site.
+
+---
+
+## Additional Technical Details
+- **Firebase Firestore:** Used for all product, order, and user data. Queries are optimized for performance and security.
+- **Firebase Auth:** Google login is required for order placement and account management.
+- **Firebase Storage:** All product and banner images are stored and loaded from Firebase Storage.
+- **localStorage:** Used for cart persistence, scroll position, and navigation context.
+- **SPA-like Navigation:** Uses smooth scroll, localStorage, and context-aware navigation for a seamless user experience.
+- **Accessibility:** Uses semantic HTML, ARIA roles, and keyboard navigation where possible.
+- **Error Handling:** All user actions provide feedback via toast notifications, modals, or inline messages.
+- **Responsive and Mobile-First:** All pages and components are designed to work on any device.
+
+---
+
+## User Flows & Edge Cases
+- **Add to Cart:** Works from both product grid and product details. Handles out-of-stock and duplicate items.
+- **Buy Now:** Skips cart and goes directly to checkout with the selected product.
+- **Checkout:** Validates all fields, requires login, and handles payment method-specific requirements.
+- **Order Placement:** Updates user profile, clears only purchased items from cart, and provides order confirmation.
+- **Profile Management:** Allows editing and persists changes to Firestore.
+- **Order History:** Real-time updates, filtering, and detailed view for each order.
+- **Navigation:** All navigation is context-aware and preserves user state (e.g., scroll position, cart contents).
+
+---
+
+**With this expanded prompt, any developer or AI will have a deep, actionable understanding of the full public website, including all UI elements, user flows, business logic, and edge cases.** 

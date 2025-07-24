@@ -14,6 +14,12 @@ const closeCart = document.getElementById('close-cart');
 const checkoutBtn = document.getElementById('checkout-btn');
 const bottomNavBar = document.getElementById('bottom-nav');
 
+// Custom modal elements
+const confirmModal = document.getElementById('custom-confirm-modal');
+const confirmModalYes = document.getElementById('confirm-modal-yes');
+const confirmModalNo = document.getElementById('confirm-modal-no');
+let productIdToRemove = null;
+
 // Initialize the cart page
 document.addEventListener('DOMContentLoaded', () => {
     loadCartProducts(); // Load product details for items in cart
@@ -72,6 +78,21 @@ function setupEventListeners() {
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', handleCheckout);
     }
+
+    // Custom modal listeners
+    confirmModalYes.addEventListener('click', () => {
+        if (productIdToRemove) {
+            cart = cart.filter(item => item.id !== productIdToRemove);
+            saveCart();
+            updateCartDisplay();
+            showToast('Item removed from cart.');
+        }
+        closeConfirmModal();
+    });
+
+    confirmModalNo.addEventListener('click', () => {
+        closeConfirmModal();
+    });
 }
 
 // Add to cart (can be used if product details are displayed)
@@ -87,7 +108,8 @@ function addToCart(productId) {
                 name: product.name,
                 price: product.price,
                 image: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
-                quantity: 1
+                quantity: 1,
+                selected: true // Added for selection
             });
         }
     }
@@ -96,12 +118,21 @@ function addToCart(productId) {
     showToast('Item added to cart!');
 }
 
-// Remove from cart
+// --- Custom Modal Functions ---
+function openConfirmModal(productId) {
+    productIdToRemove = productId;
+    confirmModal.style.display = 'flex';
+}
+
+function closeConfirmModal() {
+    productIdToRemove = null;
+    confirmModal.style.display = 'none';
+}
+// -----------------------------
+
+// Remove from cart - now opens the custom modal
 function removeFromCart(productId) {
-    cart = cart.filter(item => item.id !== productId);
-    saveCart();
-    updateCartDisplay();
-    showToast('Item removed from cart.');
+    openConfirmModal(productId);
 }
 
 // Update cart quantity
@@ -115,6 +146,16 @@ function updateCartQuantity(productId, change) {
             saveCart();
             updateCartDisplay();
         }
+    }
+}
+
+// Toggle item selection
+function toggleItemSelection(productId) {
+    const item = cart.find(item => item.id === productId);
+    if (item) {
+        item.selected = !item.selected;
+        saveCart();
+        updateCartDisplay();
     }
 }
 
@@ -144,7 +185,10 @@ function updateCartDisplay() {
 
     if (cartItems) {
         cartItems.innerHTML = cart.map(item => `
-            <div class="cart-item">
+            <div class="cart-item ${item.selected ? 'selected' : ''}">
+                <div class="cart-item-selection">
+                    <input type="checkbox" class="item-selection-checkbox" onchange="toggleItemSelection('${item.id}')" ${item.selected ? 'checked' : ''}>
+                </div>
                 <div class="cart-item-image">
                     ${item.image
                         ? `<img src="${item.image}" alt="${item.name}">`
@@ -158,15 +202,19 @@ function updateCartDisplay() {
                         <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', -1)">-</button>
                         <span>${item.quantity}</span>
                         <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', 1)">+</button>
-                        <button class="remove-cart-item" onclick="removeFromCart('${item.id}')">Remove</button>
+                        <button class="remove-cart-item" onclick="removeFromCart('${item.id}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         `).join('');
     }
 
-    // Update total
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    // Update total based on selected items
+    const total = cart
+        .filter(item => item.selected)
+        .reduce((sum, item) => sum + (item.price * item.quantity), 0);
     if (cartTotal) {
         cartTotal.textContent = `৳${total.toFixed(2)}`;
     }
@@ -180,10 +228,17 @@ function toggleCart() {
 
 // Handle checkout
 function handleCheckout() {
-    if (cart.length === 0) {
-        showToast('Your cart is empty!', true);
+    const selectedItems = cart.filter(item => item.selected);
+    if (selectedItems.length === 0) {
+        showToast('Please select items to checkout!', true);
         return;
     }
+
+    // Store only selected items for checkout
+    localStorage.setItem('cartForCheckout', JSON.stringify(selectedItems));
+    
+    // Store the current URL to return to after checkout
+    localStorage.setItem('checkoutSource', window.location.href);
 
     // Redirect to checkout page
     window.location.href = '../checkout/index.html';
@@ -237,4 +292,5 @@ function setupBottomNav() {
 window.addToCart = addToCart;
 window.updateCartQuantity = updateCartQuantity;
 window.removeFromCart = removeFromCart;
+window.toggleItemSelection = toggleItemSelection; // Expose new function
 window.showToast = showToast; 

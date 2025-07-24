@@ -1,3 +1,7 @@
+:root {
+    --bottom-nav-height: 69px; /* Default height for the bottom navigation bar */
+}
+
 html, body {
     height: 100%;
     margin: 0;
@@ -93,12 +97,28 @@ body {
     display: flex;
     align-items: center;
     margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px dashed #497D74;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #497D74;
+    transition: background-color 0.3s ease;
+}
+
+.cart-item.selected {
+    background-color: rgba(113, 187, 175, 0.39);
 }
 
 .cart-item:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.cart-item-selection {
+    margin-right: 1rem;
+}
+
+.item-selection-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
 }
 
 .cart-item-image {
@@ -108,12 +128,29 @@ body {
     overflow: hidden;
     margin-right: 1rem;
     flex-shrink: 0;
+    position: relative; /* Added for absolute positioning of child */
+    aspect-ratio: 1/1; /* Ensure square aspect ratio */
+}
+
+/* Fallback for browsers that don't support aspect-ratio */
+@supports not (aspect-ratio: 1/1) {
+    .cart-item-image {
+        position: relative;
+    }
+    .cart-item-image::before {
+        content: "";
+        display: block;
+        padding-top: 100%; /* Creates a 1:1 aspect ratio */
+    }
 }
 
 .cart-item-image img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: cover; /* Ensures the image covers the square container */
+    position: absolute; /* Position absolutely within parent */
+    top: 0;
+    left: 0;
 }
 
 .cart-item-details {
@@ -212,14 +249,18 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-/* Bottom Navigation Bar Styles (copied from public/style.css for consistency) */
+/* Bottom Navigation Bar Styles - Synchronized with main style.css */
+:root {
+    --bottom-nav-height: 65px;
+}
+
 .bottom-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
     height: var(--bottom-nav-height);
-    background-color: #27445D; /* Match header/footer */
+    background-color: #27445D;
     display: flex;
     justify-content: space-around;
     align-items: center;
@@ -244,22 +285,104 @@ body {
     transition: all 0.3s ease;
     flex-grow: 1;
     text-align: center;
-    max-width: 25%; /* Ensure even distribution */
+    max-width: 25%;
 }
 
 .bottom-nav-link i {
-    font-size: 1.4rem;
-    margin-bottom: 0.3rem;
+    font-size: 1.5rem;
+    margin-bottom: 0.2rem;
 }
 
 .bottom-nav-link.active,
 .bottom-nav-link:hover {
     color: #71BBB2;
-    background-color: rgba(113, 187, 178, 0.1); /* Lighter background on active/hover */
+    background-color: #3B5D7A; /* Highlight for active link */
 }
 
+@media (max-width: 480px) {
+    .bottom-nav-link span {
+        font-size: 0.7rem;
+    }
+}
+/* End of Synchronized Styles */
+
+/* Custom Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.modal-content {
+    background: #27445D;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    color: #EFE9D5;
+}
+
+.modal-content h4 {
+    margin-top: 0;
+    font-size: 1.4rem;
+    color: #71BBB2;
+}
+
+.modal-content p {
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-danger {
+    background-color: #ff4757;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #d63031;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background-color: #497D74;
+    color: #EFE9D5;
+}
+
+.btn-secondary:hover {
+    background-color: #71BBB2;
+    transform: translateY(-2px);
+}
+
+
 body.hide-bottom-nav .bottom-nav {
-    display: none; /* Hide the bottom navigation bar */
+    display: none;
 }
 
 body.hide-bottom-nav .cart-page-container {
@@ -272,9 +395,7 @@ body.hide-bottom-nav .cart-sidebar {
 }
 
 @media (max-width: 768px) {
-    :root {
-        --bottom-nav-height: 60px;
-    }
+    /* Height is now defined globally in :root */
     .cart-sidebar {
         width: 100%;
         max-width: unset;
@@ -285,17 +406,11 @@ body.hide-bottom-nav .cart-sidebar {
 }
 
 @media (max-width: 480px) {
-    :root {
-        --bottom-nav-height: 60px; /* Ensure consistency */
-    }
+    /* Height is now defined globally in :root */
     .bottom-nav {
         padding: 0.3rem 0;
     }
     .bottom-nav-link span {
-        font-size: 0.7rem;
-    }
-    .cart-sidebar {
-        bottom: var(--bottom-nav-height); /* Ensure it stays above the bottom nav */
-        height: calc(100% - var(--bottom-nav-height)); /* Full height minus bottom nav */
+        font-size: 0.7rem; /* Restore font size for smaller screens */
     }
 } 

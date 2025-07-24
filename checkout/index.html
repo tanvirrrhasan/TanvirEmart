@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout - E-Mart</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="checkout-container">
         <header class="checkout-header">
-            <a href="../index.html" class="back-btn">← Back to Shop</a>
+            <a href="#" class="back-btn">← Back</a>
             <h1>Checkout</h1>
         </header>
 
@@ -24,7 +25,7 @@
                     </div>
                     <div class="delivery-fee">
                         <span>Delivery Fee:</span>
-                        <span id="delivery-fee">৳60</span>
+                        <span id="delivery-fee">৳150</span>
                     </div>
                     <div class="total">
                         <span>Total:</span>
@@ -35,6 +36,13 @@
 
             <div class="customer-info">
                 <h2>Customer Information</h2>
+                <div id="login-prompt" class="login-prompt" style="display: none;">
+                  <h3>Please Login</h3>
+                  <p>Login to place your order and save your details.</p>
+                  <button id="login-btn" class="login-btn">
+                    <i class="fab fa-google"></i> Login with Google
+                  </button>
+                </div>
                 <form id="checkout-form">
                     <div class="form-group">
                         <label for="customer-name">Full Name *</label>
@@ -50,15 +58,25 @@
                         <label for="customer-email">Email (Optional)</label>
                         <input type="email" id="customer-email">
                     </div>
+
+                    <div class="address-group">
+                        <div class="form-group">
+                            <label for="division">Division *</label>
+                            <input type="text" id="division" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="district">District *</label>
+                            <input type="text" id="district" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="upazila">Upazila *</label>
+                            <input type="text" id="upazila" required>
+                        </div>
+                    </div>
                     
                     <div class="form-group">
-                        <label for="delivery-address">Delivery Address *</label>
-                        <div class="address-selection">
-                            <select id="saved-addresses" style="margin-bottom: 10px;">
-                                <option value="">Select Saved Address</option>
-                            </select>
-                            <textarea id="delivery-address" rows="3" required></textarea>
-                        </div>
+                        <label for="delivery-address">Street Address / Detailed Address *</label>
+                        <textarea id="delivery-address" rows="3" required></textarea>
                     </div>
                     
                     <div class="form-group">
