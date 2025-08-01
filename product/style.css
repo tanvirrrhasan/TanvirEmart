@@ -364,6 +364,33 @@ html {
     font-size: 0.9rem; /* Slightly smaller font */
 }
 
+.clear-input-btn {
+    background: none;
+    border: none;
+    color: #EFE9D5;
+    cursor: pointer;
+    padding: 0.2rem;
+    font-size: 0.7rem;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+}
+
+.clear-input-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.clear-input-btn:active {
+    transform: scale(0.95);
+}
+
 /* Mobile menu button - make it centered */
 .mobile-menu-btn {
     display: flex;
@@ -1622,5 +1649,422 @@ html {
     
     .product-price {
         font-size: 1rem;
+    }
+} 
+
+/* Search Suggestions Styles for Product Detail Page */
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+}
+
+.suggestion-item {
+    padding: 0.8rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.suggestion-item.selected {
+    background-color: #5D9C90;
+    color: white;
+}
+
+.suggestion-item.selected i {
+    color: white;
+}
+
+.suggestion-item.selected span {
+    color: white;
+}
+
+/* Product Suggestion Styles */
+.product-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.product-suggestion:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.product-suggestion.selected {
+    background-color: #5D9C90;
+    color: white;
+}
+
+.suggestion-product-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.suggestion-product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.suggestion-product-image .no-image {
+    font-size: 0.7rem;
+    color: #999;
+    text-align: center;
+    padding: 0.2rem;
+}
+
+.suggestion-product-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.suggestion-product-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-product-price {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #5D9C90;
+    margin-bottom: 0.1rem;
+}
+
+/* Selected state for product suggestions */
+.product-suggestion.selected .suggestion-product-name {
+    color: white;
+}
+
+.product-suggestion.selected .suggestion-product-price {
+    color: #EFE9D5;
+}
+
+/* Enhanced search box positioning for suggestions */
+.search-box {
+    position: relative;
+} 
+
+/* Mobile optimization for search results header */
+@media (max-width: 768px) {
+    .search-results-header {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0;
+        flex-wrap: nowrap;
+    }
+    
+    .search-results-header h3 {
+        font-size: 0.7rem;
+        line-height: 1.1;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .clear-search-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.65rem;
+        min-width: fit-content;
+        flex-shrink: 0;
+    }
+} 
+
+.search-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e0e0e0;
+    gap: 0.5rem;
+    grid-column: 1 / -1; /* Span across all grid columns */
+} 
+
+/* Variation Selection Modal Styles */
+.variation-modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.variation-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.variation-modal-content {
+    background: #3B5D7A;
+    border-radius: 15px;
+    padding: 0;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.variation-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid #497D74;
+    background: #497D74;
+    border-radius: 15px 15px 0 0;
+}
+
+.variation-modal-header h3 {
+    color: #EFE9D5;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.close-variation-modal {
+    background: none;
+    border: none;
+    color: #EFE9D5;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.close-variation-modal:hover {
+    background-color: rgba(239, 233, 213, 0.1);
+}
+
+.variation-modal-body {
+    padding: 25px;
+}
+
+.variation-modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid #497D74;
+    background: #497D74;
+    border-radius: 0 0 15px 15px;
+}
+
+.add-to-cart-confirm-btn {
+    width: 100%;
+    background: #43a047;
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.add-to-cart-confirm-btn:hover {
+    background: #388e3c;
+}
+
+.add-to-cart-confirm-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Variation options in modal */
+.modal-variation-option-group {
+    margin-bottom: 25px;
+}
+
+.modal-variation-option-group h4 {
+    color: #EFE9D5;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-variation-option-group h4.required::after {
+    content: " *";
+    color: #e53935;
+}
+
+.modal-variation-options-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.modal-variant-option-item {
+    background: #497D74;
+    color: #EFE9D5;
+    border: 2px solid transparent;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+    min-width: 60px;
+    text-align: center;
+}
+
+.modal-variant-option-item:hover {
+    background: #5a8a7f;
+    border-color: #EFE9D5;
+}
+
+.modal-variant-option-item.selected {
+    background: #EFE9D5;
+    color: #27445D;
+    border-color: #EFE9D5;
+    font-weight: 600;
+}
+
+.modal-variant-option-item.disabled {
+    background: #666;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Error message in modal */
+.modal-error-message {
+    color: #e53935;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(229, 57, 53, 0.1);
+    border-radius: 5px;
+    border-left: 3px solid #e53935;
+}
+
+/* Responsive design for modal */
+@media (max-width: 600px) {
+    .variation-modal-content {
+        width: 95%;
+        max-height: 85vh;
+    }
+    
+    .variation-modal-header {
+        padding: 15px 20px;
+    }
+    
+    .variation-modal-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .variation-modal-body {
+        padding: 20px;
+    }
+    
+    .variation-modal-footer {
+        padding: 15px 20px;
+    }
+    
+    .modal-variation-options-list {
+        gap: 8px;
+    }
+    
+    .modal-variant-option-item {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        min-width: 50px;
+    }
+}
+
+@media (max-width: 480px) {
+    .variation-modal-content {
+        width: 98%;
+        max-height: 90vh;
+    }
+    
+    .variation-modal-header {
+        padding: 12px 15px;
+    }
+    
+    .variation-modal-body {
+        padding: 15px;
+    }
+    
+    .variation-modal-footer {
+        padding: 12px 15px;
+    }
+    
+    .modal-variation-options-list {
+        gap: 6px;
+    }
+    
+    .modal-variant-option-item {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        min-width: 45px;
     }
 } 

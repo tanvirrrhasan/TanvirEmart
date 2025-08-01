@@ -86,6 +86,8 @@ function updateOrderSummary() {
             <div class="cart-item-details">
                 <div class="cart-item-name">${item.name}</div>
                 <div class="cart-item-price">৳${item.price}</div>
+                ${(item.selectedColor ? `<div class='cart-item-variant'><strong>Color:</strong> ${item.selectedColor}</div>` : '')}
+                ${(item.selectedSize ? `<div class='cart-item-variant'><strong>Size:</strong> ${item.selectedSize}</div>` : '')}
                 <div class="cart-item-quantity">
                     <span>Quantity:</span>
                     <div class="quantity-controls">

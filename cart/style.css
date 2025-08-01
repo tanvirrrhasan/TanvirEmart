@@ -158,15 +158,28 @@ body {
 }
 
 .cart-item-name {
-    font-weight: bold;
-    font-size: 1.1rem;
-    margin-bottom: 0.3rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
     color: #EFE9D5;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.cart-item-variations {
+    font-size: 0.85rem;
+    color: #B8C5D1;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    background: rgba(73, 125, 116, 0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
 }
 
 .cart-item-price {
-    color: #71BBB2;
-    font-weight: 600;
+    font-weight: 700;
+    color: #EFE9D5;
+    font-size: 1.1rem;
     margin-bottom: 0.5rem;
 }
 

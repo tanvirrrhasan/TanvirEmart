@@ -132,17 +132,41 @@ function closeConfirmModal() {
 
 // Remove from cart - now opens the custom modal
 function removeFromCart(productId) {
-    openConfirmModal(productId);
+    // Find the specific cart item by ID and variations
+    const itemToRemove = cart.find(item => item.id === productId);
+    if (itemToRemove) {
+        // Remove the specific item (with its variations)
+        cart = cart.filter(item => {
+            if (item.id !== productId) return true;
+            if (item.selectedColor !== itemToRemove.selectedColor) return true;
+            if (item.selectedSize !== itemToRemove.selectedSize) return true;
+            return false; // Remove this specific item
+        });
+        saveCart();
+        updateCartDisplay();
+        showToast('Item removed from cart.');
+    }
 }
 
 // Update cart quantity
 function updateCartQuantity(productId, change) {
-    const item = cart.find(item => item.id === productId);
-    if (item) {
-        item.quantity += change;
-        if (item.quantity <= 0) {
+    // Find the specific cart item by ID and variations
+    const itemToUpdate = cart.find(item => item.id === productId);
+    if (itemToUpdate) {
+        const newQuantity = itemToUpdate.quantity + change;
+        if (newQuantity <= 0) {
+            // Remove item if quantity becomes 0
             removeFromCart(productId);
         } else {
+            // Update quantity for the specific item (with its variations)
+            cart = cart.map(item => {
+                if (item.id === productId && 
+                    item.selectedColor === itemToUpdate.selectedColor && 
+                    item.selectedSize === itemToUpdate.selectedSize) {
+                    return { ...item, quantity: newQuantity };
+                }
+                return item;
+            });
             saveCart();
             updateCartDisplay();
         }
@@ -151,9 +175,18 @@ function updateCartQuantity(productId, change) {
 
 // Toggle item selection
 function toggleItemSelection(productId) {
-    const item = cart.find(item => item.id === productId);
-    if (item) {
-        item.selected = !item.selected;
+    // Find the specific cart item by ID and variations
+    const itemToToggle = cart.find(item => item.id === productId);
+    if (itemToToggle) {
+        // Toggle selection for the specific item (with its variations)
+        cart = cart.map(item => {
+            if (item.id === productId && 
+                item.selectedColor === itemToToggle.selectedColor && 
+                item.selectedSize === itemToToggle.selectedSize) {
+                return { ...item, selected: !item.selected };
+            }
+            return item;
+        });
         saveCart();
         updateCartDisplay();
     }
@@ -184,31 +217,43 @@ function updateCartDisplay() {
     }
 
     if (cartItems) {
-        cartItems.innerHTML = cart.map(item => `
-            <div class="cart-item ${item.selected ? 'selected' : ''}">
-                <div class="cart-item-selection">
-                    <input type="checkbox" class="item-selection-checkbox" onchange="toggleItemSelection('${item.id}')" ${item.selected ? 'checked' : ''}>
-                </div>
-                <div class="cart-item-image">
-                    ${item.image
-                        ? `<img src="${item.image}" alt="${item.name}">`
-                        : '<div style="width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 0.8rem;">No Image</div>'
-                    }
-                </div>
-                <div class="cart-item-details">
-                    <div class="cart-item-name">${item.name}</div>
-                    <div class="cart-item-price">৳${item.price}</div>
-                    <div class="cart-item-quantity">
-                        <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', -1)">-</button>
-                        <span>${item.quantity}</span>
-                        <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', 1)">+</button>
-                        <button class="remove-cart-item" onclick="removeFromCart('${item.id}')">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+        cartItems.innerHTML = cart.map(item => {
+            // Generate variation display text
+            let variationText = '';
+            const variations = [];
+            if (item.selectedColor) variations.push(`Color: ${item.selectedColor}`);
+            if (item.selectedSize) variations.push(`Size: ${item.selectedSize}`);
+            if (variations.length > 0) {
+                variationText = `<div class="cart-item-variations">${variations.join(', ')}</div>`;
+            }
+            
+            return `
+                <div class="cart-item ${item.selected ? 'selected' : ''}">
+                    <div class="cart-item-selection">
+                        <input type="checkbox" class="item-selection-checkbox" onchange="toggleItemSelection('${item.id}')" ${item.selected ? 'checked' : ''}>
+                    </div>
+                    <div class="cart-item-image">
+                        ${item.image
+                            ? `<img src="${item.image}" alt="${item.name}">`
+                            : '<div style="width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 0.8rem;">No Image</div>'
+                        }
+                    </div>
+                    <div class="cart-item-details">
+                        <div class="cart-item-name">${item.name}</div>
+                        ${variationText}
+                        <div class="cart-item-price">৳${item.price}</div>
+                        <div class="cart-item-quantity">
+                            <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', -1)">-</button>
+                            <span>${item.quantity}</span>
+                            <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', 1)">+</button>
+                            <button class="remove-cart-item" onclick="removeFromCart('${item.id}')">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // Update total based on selected items

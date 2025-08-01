@@ -1,0 +1,45 @@
+{
+  "name": "tanvir-emart",
+  "version": "1.0.0",
+  "description": "A modern e-commerce web application built with HTML, CSS, and JavaScript, featuring Firebase integration",
+  "main": "index.html",
+  "scripts": {
+    "start": "live-server --port=5502",
+    "dev": "live-server --port=5502 --open=/index.html",
+    "build": "echo 'No build process required for static site'",
+    "deploy": "firebase deploy",
+    "deploy:preview": "firebase deploy --only hosting:preview",
+    "test": "echo 'No automated tests configured yet'",
+    "lint": "echo 'No linting configured yet'"
+  },
+  "keywords": [
+    "e-commerce",
+    "firebase",
+    "javascript",
+    "html",
+    "css",
+    "shopping",
+    "online-store"
+  ],
+  "author": "Tanvir Hasan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tanvirrrhasan/TanvirEmart.git"
+  },
+  "homepage": "https://tanviremart.vercel.app",
+  "bugs": {
+    "url": "https://github.com/tanvirrrhasan/TanvirEmart/issues"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+} 

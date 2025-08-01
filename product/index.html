@@ -24,6 +24,9 @@
                 <div class="header-actions">
                     <div class="search-box">
                         <input type="text" id="search-input" placeholder="Search products...">
+                        <button id="clear-search-input" class="clear-input-btn" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
                         <button id="search-btn"><i class="fas fa-search"></i></button>
                     </div>
                     <div class="mobile-menu-btn" id="mobile-menu-btn">
@@ -57,6 +60,28 @@
             <div id="error-message" class="error-message" style="display:none;">Product not found or an error occurred.</div>
         </div>
     </main>
+
+    <!-- Variation Selection Modal -->
+    <div id="variation-modal" class="variation-modal">
+        <div class="variation-modal-content">
+            <div class="variation-modal-header">
+                <h3>Select Variations</h3>
+                <button class="close-variation-modal" id="close-variation-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="variation-modal-body">
+                <div id="variation-options">
+                    <!-- Variation options will be dynamically loaded here -->
+                </div>
+            </div>
+            <div class="variation-modal-footer">
+                <button class="add-to-cart-confirm-btn" id="add-to-cart-confirm-btn">
+                    <i class="fas fa-cart-plus"></i> Add to Cart
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Bottom Navigation Bar for Product Page -->
     <nav class="bottom-nav product-page-bottom-nav" id="product-bottom-nav">

@@ -1,5 +1,5 @@
 import { db } from './firebase-config.js';
-import { doc, getDoc, collection, query, where, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { doc, getDoc, collection, query, where, limit, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // DOM Elements
 const loadingOverlay = document.getElementById('loading-overlay');
@@ -10,12 +10,27 @@ const addToCartBtnBottom = document.getElementById('add-to-cart-btn-bottom');
 const buyNowBtnBottom = document.getElementById('buy-now-btn-bottom');
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
+const clearSearchInput = document.getElementById('clear-search-input');
 const mobileMenuBtn = document.getElementById('mobile-menu-btn');
 const mobileMenu = document.getElementById('mobile-menu');
 const navCartProductPage = document.getElementById('nav-cart-product-page'); // New: Get the small cart button
 
-// Global variable to store current product data
+// Variation modal elements
+const variationModal = document.getElementById('variation-modal');
+const closeVariationModal = document.getElementById('close-variation-modal');
+const variationOptions = document.getElementById('variation-options');
+const addToCartConfirmBtn = document.getElementById('add-to-cart-confirm-btn');
+
+// Global variables
 let currentProduct = null;
+let selectedVariants = {};
+let modalSelectedVariants = {}; // Separate state for modal selections
+let allProducts = []; // Store all products for search suggestions
+let searchTimeout = null; // For debouncing search
+let searchSuggestions = []; // Store search suggestions
+let selectedSuggestionIndex = -1; // Track selected suggestion for keyboard navigation
+let navigationHistory = [];
+let isNavigatingBack = false; // Flag to prevent double navigation
 
 // Initialize cart from localStorage
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -68,20 +83,37 @@ function hideLoading() {
 function setupEventListeners() {
     if (backToShopBtn) {
         backToShopBtn.addEventListener('click', () => {
+            // Prevent double navigation
+            if (isNavigatingBack) {
+                return;
+            }
+            isNavigatingBack = true;
+            
             // Check if we came from checkout and have a stored original referrer
             const originalReferrer = localStorage.getItem('originalReferrer');
             if (originalReferrer) {
                 localStorage.removeItem('originalReferrer'); // Clear it after use
                 window.location.href = originalReferrer;
             } else {
-                // If we came directly to the product page, just go back
-                // or go to home if there's no history
-                if (document.referrer.includes('checkout')) {
+                // Simple and reliable back navigation
+                try {
+                    // Try to go back in history
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        // If no history, go to home
+                        window.location.href = '../index.html';
+                    }
+                } catch (error) {
+                    // Fallback to home page
                     window.location.href = '../index.html';
-                } else {
-                    history.back();
                 }
             }
+            
+            // Reset flag after a short delay
+            setTimeout(() => {
+                isNavigatingBack = false;
+            }, 1000);
         });
     }
 
@@ -99,7 +131,86 @@ function setupEventListeners() {
 
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleSearch();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedSuggestionIndex >= 0 && searchSuggestions.length > 0) {
+                    // If a product suggestion is selected, go to product detail page
+                    const selectedProduct = searchSuggestions[selectedSuggestionIndex];
+                    if (selectedProduct && selectedProduct.id) {
+                        selectProductSuggestion(selectedProduct.id);
+                    } else {
+                        // Fallback to normal search
+                        handleSearch();
+                    }
+                } else {
+                    // Otherwise perform normal search
+                    handleSearch();
+                }
+            }
+        });
+        
+        // Real-time search with debouncing
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.trim();
+            
+            // Show/hide clear button based on input
+            if (clearSearchInput) {
+                clearSearchInput.style.display = searchTerm ? 'flex' : 'none';
+            }
+            
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            // Reset suggestion selection
+            selectedSuggestionIndex = -1;
+            
+            // If search term is empty, hide suggestions
+            if (searchTerm === '') {
+                searchSuggestions = [];
+                hideSearchSuggestions();
+                return;
+            }
+            
+            // Show search suggestions for short terms
+            if (searchTerm.length >= 2) {
+                showSearchSuggestions(searchTerm);
+            } else {
+                hideSearchSuggestions();
+            }
+        });
+        
+        // Keyboard navigation for suggestions
+        searchInput.addEventListener('keydown', (e) => {
+            const suggestionsContainer = document.querySelector('.search-suggestions');
+            if (!suggestionsContainer || suggestionsContainer.style.display === 'none') {
+                return;
+            }
+            
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    navigateSuggestions(1);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    navigateSuggestions(-1);
+                    break;
+                case 'Escape':
+                    hideSearchSuggestions();
+                    selectedSuggestionIndex = -1;
+                    break;
+            }
+        });
+    }
+
+    if (clearSearchInput) {
+        clearSearchInput.addEventListener('click', () => {
+            searchInput.value = '';
+            searchSuggestions = [];
+            hideSearchSuggestions();
+            selectedSuggestionIndex = -1;
         });
     }
 
@@ -114,16 +225,41 @@ function setupEventListeners() {
         });
     }
 
+    // Variation modal event listeners
+    if (closeVariationModal) {
+        closeVariationModal.addEventListener('click', closeVariationModalFunc);
+    }
+
+    if (addToCartConfirmBtn) {
+        addToCartConfirmBtn.addEventListener('click', () => {
+            // Check if this is for buy now or add to cart based on button text
+            const buttonText = addToCartConfirmBtn.textContent || addToCartConfirmBtn.innerHTML;
+            if (buttonText.includes('Buy Now')) {
+                confirmBuyNow();
+            } else {
+                confirmAddToCart();
+            }
+        });
+    }
+
+    // Close modal when clicking outside
+    if (variationModal) {
+        variationModal.addEventListener('click', (e) => {
+            if (e.target === variationModal) {
+                closeVariationModalFunc();
+            }
+        });
+    }
+
     document.querySelectorAll('.mobile-nav .nav-link').forEach(link => {
         link.addEventListener('click', handleNavigation);
     });
-
-    // Close mobile menu when clicking outside
+    
+    // Handle clicks outside search suggestions
     document.addEventListener('click', (e) => {
-        if (mobileMenu && !mobileMenu.contains(e.target) && e.target !== mobileMenuBtn && e.target !== searchInput && !searchBtn.contains(e.target)) {
-            if (mobileMenu.classList.contains('active')) {
-                toggleMobileMenu();
-            }
+        if (!e.target.closest('.search-box') && !e.target.closest('.search-suggestions')) {
+            hideSearchSuggestions();
+            selectedSuggestionIndex = -1;
         }
     });
 }
@@ -147,8 +283,13 @@ function toggleMobileMenu() {
 
 // Handle search from product detail page
 function handleSearch() {
-    const searchTerm = searchInput.value.toLowerCase();
-    window.location.href = `/public/index.html?search=${encodeURIComponent(searchTerm)}`;
+    const searchTerm = searchInput.value.trim();
+    if (searchTerm === '') {
+        showToast('Please enter a search term', true);
+        return;
+    }
+    // Redirect to main page with search parameter
+    window.location.href = `../index.html?search=${encodeURIComponent(searchTerm)}`;
 }
 
 // Handle navigation from mobile menu on product detail page
@@ -563,6 +704,7 @@ function renderProductDetails(product) {
             // Remove selected from other items of the same type
             document.querySelectorAll(`.variant-option-item[data-variant-type="${type}"]`).forEach(el => el.classList.remove('selected'));
             this.classList.add('selected');
+            selectedVariants[type] = value;
             // You can store selected variants in currentProduct object or a separate state if needed
             console.log(`Selected ${type}: ${value}`);
         });
@@ -580,22 +722,223 @@ function addToCart() {
         return;
     }
 
-    const existingItem = cart.find(item => item.id === currentProduct.id);
+    // Check if product has variations that need to be selected
+    const hasColors = currentProduct.colors && currentProduct.colors.length > 0;
+    const hasSizes = currentProduct.sizes && currentProduct.sizes.length > 0;
     
-    if (existingItem) {
-        existingItem.quantity += 1;
+    if (hasColors || hasSizes) {
+        // Check if all required variations are already selected
+        const colorSelected = !hasColors || selectedVariants.color;
+        const sizeSelected = !hasSizes || selectedVariants.size;
+        
+        if (colorSelected && sizeSelected) {
+            // All variations are already selected, add directly to cart
+            addProductToCart(selectedVariants);
+        } else {
+            // Show variation selection modal
+            showVariationModal();
+        }
     } else {
-        cart.push({
-            id: currentProduct.id,
-            name: currentProduct.name,
-            price: currentProduct.price,
-            image: currentProduct.imageUrls && currentProduct.imageUrls.length > 0 ? currentProduct.imageUrls[0] : null,
-            quantity: 1
-        });
+        // No variations, add directly to cart
+        addProductToCart();
     }
+}
 
+// Show variation selection modal
+function showVariationModal() {
+    if (!variationModal || !variationOptions) return;
+    
+    // Initialize modal selections with already selected variations
+    modalSelectedVariants = { ...selectedVariants };
+    
+    // Generate variation options HTML
+    let variationOptionsHtml = '';
+    let hasRequiredVariations = false;
+    
+    if (currentProduct.colors && currentProduct.colors.length > 0) {
+        hasRequiredVariations = true;
+        variationOptionsHtml += `
+            <div class="modal-variation-option-group">
+                <h4 class="required">Colors</h4>
+                <div class="modal-variation-options-list">
+                    ${currentProduct.colors.map(color => 
+                        `<span class="modal-variant-option-item ${modalSelectedVariants.color === color ? 'selected' : ''}" data-variant-type="color" data-variant-value="${color}">${color}</span>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    if (currentProduct.sizes && currentProduct.sizes.length > 0) {
+        hasRequiredVariations = true;
+        variationOptionsHtml += `
+            <div class="modal-variation-option-group">
+                <h4 class="required">Sizes</h4>
+                <div class="modal-variation-options-list">
+                    ${currentProduct.sizes.map(size => 
+                        `<span class="modal-variant-option-item ${modalSelectedVariants.size === size ? 'selected' : ''}" data-variant-type="size" data-variant-value="${size}">${size}</span>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    variationOptions.innerHTML = variationOptionsHtml;
+    
+    // Add click event listeners to variation options
+    variationOptions.querySelectorAll('.modal-variant-option-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const type = this.dataset.variantType;
+            const value = this.dataset.variantValue;
+            
+            // Remove selected from other items of the same type
+            variationOptions.querySelectorAll(`.modal-variant-option-item[data-variant-type="${type}"]`).forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Select this item
+            this.classList.add('selected');
+            modalSelectedVariants[type] = value;
+            
+            // Update confirm button state
+            updateConfirmButtonState();
+        });
+    });
+    
+    // Show modal
+    variationModal.classList.add('active');
+    
+    // Reset button text to Add to Cart
+    if (addToCartConfirmBtn) {
+        addToCartConfirmBtn.innerHTML = '<i class="fas fa-cart-plus"></i> Add to Cart';
+    }
+    
+    // Update confirm button state
+    updateConfirmButtonState();
+}
+
+// Close variation modal
+function closeVariationModalFunc() {
+    if (variationModal) {
+        variationModal.classList.remove('active');
+        // Update selectedVariants with modal selections when closing
+        selectedVariants = { ...modalSelectedVariants };
+        // Don't reset modalSelectedVariants here to avoid data loss
+    }
+}
+
+// Update confirm button state based on required variations
+function updateConfirmButtonState() {
+    if (!addToCartConfirmBtn) return;
+    
+    const hasColors = currentProduct.colors && currentProduct.colors.length > 0;
+    const hasSizes = currentProduct.sizes && currentProduct.sizes.length > 0;
+    
+    const colorSelected = !hasColors || modalSelectedVariants.color;
+    const sizeSelected = !hasSizes || modalSelectedVariants.size;
+    
+    // Check if this is for buy now or add to cart based on button text
+    const buttonText = addToCartConfirmBtn.textContent || addToCartConfirmBtn.innerHTML;
+    const isBuyNow = buttonText.includes('Buy Now');
+    
+    if (colorSelected && sizeSelected) {
+        addToCartConfirmBtn.disabled = false;
+        if (isBuyNow) {
+            addToCartConfirmBtn.innerHTML = '<i class="fas fa-money-bill-wave"></i> Buy Now';
+        } else {
+            addToCartConfirmBtn.innerHTML = '<i class="fas fa-cart-plus"></i> Add to Cart';
+        }
+    } else {
+        addToCartConfirmBtn.disabled = true;
+        addToCartConfirmBtn.textContent = 'Please select all variations';
+    }
+}
+
+// Confirm add to cart from modal
+function confirmAddToCart() {
+    if (!currentProduct) {
+        showToast('Error: No product data.', true);
+        return;
+    }
+    
+    // Check if all required variations are selected
+    const hasColors = currentProduct.colors && currentProduct.colors.length > 0;
+    const hasSizes = currentProduct.sizes && currentProduct.sizes.length > 0;
+    
+    const colorSelected = !hasColors || modalSelectedVariants.color;
+    const sizeSelected = !hasSizes || modalSelectedVariants.size;
+    
+    if (!colorSelected || !sizeSelected) {
+        showToast('Please select all required variations.', true);
+        return;
+    }
+    
+    // Store the selected variations before closing modal
+    const selectedVariations = { ...modalSelectedVariants };
+    
+    // Update the selectedVariants with modal selections
+    selectedVariants = { ...modalSelectedVariants };
+    
+    // Close modal
+    closeVariationModalFunc();
+    
+    // Add to cart with selected variations
+    addProductToCart(selectedVariations);
+}
+
+// Add product to cart (with or without variations)
+function addProductToCart(selectedVariations = {}) {
+    if (!currentProduct) {
+        showToast('Error: No product data.', true);
+        return;
+    }
+    
+    console.log('Adding product to cart with variations:', selectedVariations);
+    
+    // Create cart item with variation information
+    const cartItem = {
+        id: currentProduct.id,
+        name: currentProduct.name,
+        price: currentProduct.price,
+        image: currentProduct.imageUrls && currentProduct.imageUrls.length > 0 ? currentProduct.imageUrls[0] : null,
+        quantity: 1,
+        selectedColor: selectedVariations.color || null,
+        selectedSize: selectedVariations.size || null
+    };
+    
+    console.log('Cart item created:', cartItem);
+    
+    // Check if item already exists in cart
+    const existingItemIndex = cart.findIndex(item => {
+        // Match by ID and variations
+        if (item.id !== cartItem.id) return false;
+        if (item.selectedColor !== cartItem.selectedColor) return false;
+        if (item.selectedSize !== cartItem.selectedSize) return false;
+        return true;
+    });
+    
+    if (existingItemIndex !== -1) {
+        // Update existing item quantity
+        cart[existingItemIndex].quantity += 1;
+        console.log('Updated existing cart item quantity');
+    } else {
+        // Add new item
+        cart.push(cartItem);
+        console.log('Added new cart item');
+    }
+    
     saveCart();
-    showToast(`${currentProduct.name} added to cart!`);
+    
+    // Show success message with variation info
+    let message = `${currentProduct.name} added to cart!`;
+    const variations = [];
+    if (selectedVariations.color) variations.push(`Color: ${selectedVariations.color}`);
+    if (selectedVariations.size) variations.push(`Size: ${selectedVariations.size}`);
+    if (variations.length > 0) {
+        message += ` (${variations.join(', ')})`;
+    }
+    
+    showToast(message);
 }
 
 // Buy Now functionality (placeholder)
@@ -609,14 +952,165 @@ function buyNow() {
         return;
     }
     
+    // Check for required variants
+    const hasColors = currentProduct.colors && currentProduct.colors.length > 0;
+    const hasSizes = currentProduct.sizes && currentProduct.sizes.length > 0;
+    
+    if (hasColors || hasSizes) {
+        // Check if all required variations are already selected
+        const colorSelected = !hasColors || selectedVariants.color;
+        const sizeSelected = !hasSizes || selectedVariants.size;
+        
+        if (colorSelected && sizeSelected) {
+            // All variations are already selected, proceed directly to checkout
+            proceedToCheckout(selectedVariants);
+        } else {
+            // Show variation selection modal for buy now
+            showVariationModalForBuyNow();
+        }
+    } else {
+        // No variations, proceed directly to checkout
+        proceedToCheckout();
+    }
+}
+
+// Show variation modal for buy now
+function showVariationModalForBuyNow() {
+    if (!variationModal || !variationOptions) return;
+    
+    // Initialize modal selections with already selected variations
+    modalSelectedVariants = { ...selectedVariants };
+    
+    // Generate variation options HTML
+    let variationOptionsHtml = '';
+    
+    if (currentProduct.colors && currentProduct.colors.length > 0) {
+        variationOptionsHtml += `
+            <div class="modal-variation-option-group">
+                <h4 class="required">Colors</h4>
+                <div class="modal-variation-options-list">
+                    ${currentProduct.colors.map(color => 
+                        `<span class="modal-variant-option-item ${modalSelectedVariants.color === color ? 'selected' : ''}" data-variant-type="color" data-variant-value="${color}">${color}</span>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    if (currentProduct.sizes && currentProduct.sizes.length > 0) {
+        variationOptionsHtml += `
+            <div class="modal-variation-option-group">
+                <h4 class="required">Sizes</h4>
+                <div class="modal-variation-options-list">
+                    ${currentProduct.sizes.map(size => 
+                        `<span class="modal-variant-option-item ${modalSelectedVariants.size === size ? 'selected' : ''}" data-variant-type="size" data-variant-value="${size}">${size}</span>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    variationOptions.innerHTML = variationOptionsHtml;
+    
+    // Add click event listeners to variation options
+    variationOptions.querySelectorAll('.modal-variant-option-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const type = this.dataset.variantType;
+            const value = this.dataset.variantValue;
+            
+            // Remove selected from other items of the same type
+            variationOptions.querySelectorAll(`.modal-variant-option-item[data-variant-type="${type}"]`).forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Select this item
+            this.classList.add('selected');
+            modalSelectedVariants[type] = value;
+            
+            // Update confirm button state
+            updateConfirmButtonStateForBuyNow();
+        });
+    });
+    
+    // Update button text for buy now
+    if (addToCartConfirmBtn) {
+        addToCartConfirmBtn.innerHTML = '<i class="fas fa-money-bill-wave"></i> Buy Now';
+    }
+    
+    // Show modal
+    variationModal.classList.add('active');
+    
+    // Update confirm button state
+    updateConfirmButtonStateForBuyNow();
+}
+
+// Update confirm button state for buy now
+function updateConfirmButtonStateForBuyNow() {
+    if (!addToCartConfirmBtn) return;
+    
+    const hasColors = currentProduct.colors && currentProduct.colors.length > 0;
+    const hasSizes = currentProduct.sizes && currentProduct.sizes.length > 0;
+    
+    const colorSelected = !hasColors || modalSelectedVariants.color;
+    const sizeSelected = !hasSizes || modalSelectedVariants.size;
+    
+    if (colorSelected && sizeSelected) {
+        addToCartConfirmBtn.disabled = false;
+        addToCartConfirmBtn.innerHTML = '<i class="fas fa-money-bill-wave"></i> Buy Now';
+    } else {
+        addToCartConfirmBtn.disabled = true;
+        addToCartConfirmBtn.innerHTML = 'Please select all variations';
+    }
+}
+
+// Confirm buy now from modal
+function confirmBuyNow() {
+    if (!currentProduct) {
+        showToast('Error: No product data.', true);
+        return;
+    }
+    
+    // Check if all required variations are selected
+    const hasColors = currentProduct.colors && currentProduct.colors.length > 0;
+    const hasSizes = currentProduct.sizes && currentProduct.sizes.length > 0;
+    
+    const colorSelected = !hasColors || modalSelectedVariants.color;
+    const sizeSelected = !hasSizes || modalSelectedVariants.size;
+    
+    if (!colorSelected || !sizeSelected) {
+        showToast('Please select all required variations.', true);
+        return;
+    }
+    
+    // Store the selected variations before closing modal
+    const selectedVariations = { ...modalSelectedVariants };
+    
+    // Update the selectedVariants with modal selections
+    selectedVariants = { ...modalSelectedVariants };
+    
+    // Close modal
+    closeVariationModalFunc();
+    
+    // Proceed to checkout with selected variations
+    proceedToCheckout(selectedVariations);
+}
+
+// Proceed to checkout (with or without variations)
+function proceedToCheckout(selectedVariations = {}) {
+    console.log('Proceeding to checkout with variations:', selectedVariations);
+    
     // Create a temporary cart with just this product
     const buyNowCart = [{
         id: currentProduct.id,
         name: currentProduct.name,
         price: currentProduct.price,
         image: currentProduct.imageUrls && currentProduct.imageUrls.length > 0 ? currentProduct.imageUrls[0] : null,
-        quantity: 1
+        quantity: 1,
+        selectedColor: selectedVariations.color || null,
+        selectedSize: selectedVariations.size || null
     }];
+    
+    console.log('Buy now cart created:', buyNowCart);
     
     // Store this temporary cart in localStorage for checkout
     localStorage.setItem('cartForCheckout', JSON.stringify(buyNowCart));
@@ -932,18 +1426,192 @@ function setupProductLinkEventListeners(container) {
     });
 }
 
+// Load all products for search suggestions
+async function loadAllProducts() {
+    try {
+        const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        allProducts = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        console.log('Loaded', allProducts.length, 'products for search suggestions');
+    } catch (error) {
+        console.error('Error loading products for search suggestions:', error);
+    }
+}
+
+// Navigate through suggestions with keyboard
+function navigateSuggestions(direction) {
+    if (searchSuggestions.length === 0) return;
+    
+    selectedSuggestionIndex += direction;
+    
+    // Wrap around
+    if (selectedSuggestionIndex >= searchSuggestions.length) {
+        selectedSuggestionIndex = 0;
+    } else if (selectedSuggestionIndex < 0) {
+        selectedSuggestionIndex = searchSuggestions.length - 1;
+    }
+    
+    updateSuggestionSelection();
+}
+
+// Update visual selection of suggestions
+function updateSuggestionSelection() {
+    const suggestionItems = document.querySelectorAll('.suggestion-item');
+    suggestionItems.forEach((item, index) => {
+        if (index === selectedSuggestionIndex) {
+            item.classList.add('selected');
+            // Scroll into view if needed
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+}
+
+// Show search suggestions
+function showSearchSuggestions(searchTerm) {
+    const term = searchTerm.toLowerCase();
+    
+    // Find matching products
+    const matchingProducts = allProducts.filter(product => {
+        const productName = product.name.toLowerCase();
+        const productDesc = product.description.toLowerCase();
+        const categoriesArr = Array.isArray(product.categories) ? product.categories : [product.category];
+        const productCategories = categoriesArr.map(cat => cat ? cat.toLowerCase() : '').join(' ');
+        
+        return productName.includes(term) ||
+               productDesc.includes(term) ||
+               productCategories.includes(term);
+    });
+    
+    // Sort by relevance
+    matchingProducts.sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        
+        // Exact match gets highest priority
+        const aExactMatch = aName === term;
+        const bExactMatch = bName === term;
+        
+        if (aExactMatch && !bExactMatch) return -1;
+        if (!aExactMatch && bExactMatch) return 1;
+        
+        // Then by name starts with
+        const aStartsWith = aName.startsWith(term);
+        const bStartsWith = bName.startsWith(term);
+        
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+        
+        // Finally alphabetically
+        return aName.localeCompare(bName);
+    });
+    
+    // Limit to 8 products
+    searchSuggestions = matchingProducts.slice(0, 8);
+    
+    // Create suggestions dropdown
+    const suggestionsContainer = document.querySelector('.search-suggestions') || createSearchSuggestionsContainer();
+    suggestionsContainer.innerHTML = searchSuggestions.map((product, index) => `
+        <div class="suggestion-item product-suggestion" data-product-id="${product.id}" data-index="${index}">
+            <div class="suggestion-product-image">
+                ${product.thumbnailUrl
+                    ? `<img src="${product.thumbnailUrl}" alt="${product.name}" loading="lazy">`
+                    : (product.secondaryImageUrls && product.secondaryImageUrls.length > 0
+                        ? `<img src="${product.secondaryImageUrls[0]}" alt="${product.name}" loading="lazy">`
+                        : '<div class="no-image">No Image</div>'
+                    )
+                }
+            </div>
+            <div class="suggestion-product-info">
+                <div class="suggestion-product-name">${product.name}</div>
+                <div class="suggestion-product-price">৳${product.price}</div>
+            </div>
+        </div>
+    `).join('');
+    
+    // Add click event listeners to suggestion items
+    suggestionsContainer.querySelectorAll('.suggestion-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const productId = item.getAttribute('data-product-id');
+            if (productId) {
+                selectProductSuggestion(productId);
+            }
+        });
+    });
+    
+    suggestionsContainer.style.display = searchSuggestions.length > 0 ? 'block' : 'none';
+}
+
+// Create search suggestions container
+function createSearchSuggestionsContainer() {
+    const container = document.createElement('div');
+    container.className = 'search-suggestions';
+    document.querySelector('.search-box').appendChild(container);
+    return container;
+}
+
+// Hide search suggestions
+function hideSearchSuggestions() {
+    const suggestionsContainer = document.querySelector('.search-suggestions');
+    if (suggestionsContainer) {
+        suggestionsContainer.style.display = 'none';
+    }
+    selectedSuggestionIndex = -1;
+}
+
+// Select a product suggestion and go to product detail page
+function selectProductSuggestion(productId) {
+    console.log('selectProductSuggestion called with productId:', productId);
+    hideSearchSuggestions();
+    selectedSuggestionIndex = -1;
+    
+    // Validate productId
+    if (!productId) {
+        console.error('No productId provided');
+        return;
+    }
+    
+    // Check if product exists
+    const product = allProducts.find(p => p.id === productId);
+    if (!product) {
+        console.error('Product not found with id:', productId);
+        return;
+    }
+    
+    console.log('Navigating to product:', product.name);
+    window.location.href = `index.html?id=${productId}`;
+}
+
 // On page load, fetch product details
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Check if we came from checkout and might be in a loop
     if (document.referrer.includes('/checkout/')) {
         // If we have an original referrer stored, we'll use it when back button is clicked
         // The back button handler will take care of this
     }
     
+    // Load all products for search suggestions
+    await loadAllProducts();
+    
     const productId = getProductIdFromUrl();
     if (productId) {
         fetchProductDetails(productId);
         setupEventListeners(); // Call setupEventListeners after DOM is loaded
+        
+        // Handle popstate for back button (without pushing extra state)
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.scrollY) {
+                setTimeout(() => {
+                    window.scrollTo(0, event.state.scrollY);
+                }, 100);
+            }
+        });
     } else {
         hideLoading();
         productDetailsContent.innerHTML = '';

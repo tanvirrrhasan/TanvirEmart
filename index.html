@@ -18,6 +18,9 @@
                 <div class="header-actions">
                     <div class="search-box">
                         <input type="text" id="search-input" placeholder="Search products...">
+                        <button id="clear-search-input" class="clear-input-btn" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
                         <button id="search-btn"><i class="fas fa-search"></i></button>
                     </div>
                     
@@ -80,6 +83,7 @@
                         </select>
                     </div>
                 </div>
+                <div id="search-results-container"></div>
                 <div class="products-grid" id="products-grid">
                     <!-- Products will be loaded here -->
                 </div>
