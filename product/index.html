@@ -37,15 +37,18 @@
         </div>
     </header>
 
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobile-menu-overlay"></div>
+
     <!-- Mobile Menu for Product Details Page (can be shared with main page styling) -->
     <div class="mobile-menu" id="mobile-menu">
         <nav class="mobile-nav">
             <ul>
-                <li><a href="/public/index.html#banner" class="nav-link active">Home</a></li>
-                <li><a href="/public/index.html#products" class="nav-link">Products</a></li>
-                <li><a href="/public/index.html#categories" class="nav-link">Categories</a></li>
-                <li><a href="/public/index.html#about" class="nav-link">About</a></li>
-                <li><a href="/public/index.html#contact" class="nav-link">Contact</a></li>
+                <li><a href="../index.html#banner" class="nav-link active">Home</a></li>
+                <li><a href="../index.html#products" class="nav-link">Products</a></li>
+                <li><a href="../index.html#categories" class="nav-link">Categories</a></li>
+                <li><a href="../index.html#about" class="nav-link">About</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
             </ul>
         </nav>
     </div>
@@ -86,7 +89,10 @@
     <!-- Bottom Navigation Bar for Product Page -->
     <nav class="bottom-nav product-page-bottom-nav" id="product-bottom-nav">
         <!-- Small Cart Button on the left -->
-        <a href="/public/cart/index.html" class="bottom-nav-link" id="nav-cart-product-page"><i class="fas fa-shopping-cart"></i></a>
+        <a href="../cart/index.html" class="bottom-nav-link" id="nav-cart-product-page"><i class="fas fa-shopping-cart"></i></a>
+        
+        <!-- Chat Button next to cart -->
+        <a href="#" class="bottom-nav-link" id="nav-chat-product-page"><i class="fas fa-comments"></i></a>
 
         <!-- Buy Now Button -->
         <button class="product-action-btn buy-now-btn-bottom" id="buy-now-btn-bottom">

@@ -1,7 +1,7 @@
 import { db } from '../firebase-config.js';
 import { auth } from '../firebase-config.js';
 import { collection, getDocs, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 // Global variables
 let currentUser = null;
@@ -28,12 +28,49 @@ const orderModal = document.getElementById('order-modal');
 const closeOrderModal = document.getElementById('close-order-modal');
 const loginPrompt = document.getElementById('login-prompt');
 const loginBtn = document.getElementById('login-btn');
+const loginPhoneBtn = document.getElementById('login-phone-btn');
 const logoutBtn = document.getElementById('logout-btn');
+
+// Phone login modal elements
+const phoneLoginModal = document.getElementById('phone-login-modal');
+const closePhoneModal = document.getElementById('close-phone-modal');
+const cancelPhoneBtn = document.getElementById('cancel-phone-btn');
+const sendOtpBtn = document.getElementById('send-otp-btn');
+const verifyOtpBtn = document.getElementById('verify-otp-btn');
+const otpSection = document.getElementById('otp-section');
+const phoneNameInput = document.getElementById('phone-name');
+const phoneGenderSelect = document.getElementById('phone-gender');
+const phoneEmailInput = document.getElementById('phone-email');
+const phoneNumberInput = document.getElementById('phone-number');
+const otpCodeInput = document.getElementById('otp-code');
+
+let recaptchaVerifierInstance = null;
+let confirmationResultGlobal = null;
+let lastOtpSentAtMs = 0;
+const OTP_SEND_COOLDOWN_MS = 60_000; // 60s cooldown to avoid repeated challenges
+let isCompleteProfileOpen = false;
+
+// Complete profile modal elements
+const completeProfileModal = document.getElementById('complete-profile-modal');
+const closeCompleteProfile = document.getElementById('close-complete-profile');
+const completeProfileForm = document.getElementById('complete-profile-form');
+const cpSaveBtn = document.getElementById('cp-save-btn');
+const cpCancelBtn = document.getElementById('cp-cancel-btn');
+const cpNameInput = document.getElementById('cp-name');
+const cpGenderSelect = document.getElementById('cp-gender');
+const cpPhoneInput = document.getElementById('cp-phone');
+const cpEmailInput = document.getElementById('cp-email');
+const cpNameGroup = document.getElementById('cp-name-group');
+const cpGenderGroup = document.getElementById('cp-gender-group');
+const cpPhoneGroup = document.getElementById('cp-phone-group');
+const cpEmailGroup = document.getElementById('cp-email-group');
 
 // Initialize account page
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initializeAuth();
+    // Pre-initialize a single invisible reCAPTCHA widget once per page load
+    ensureInvisibleRecaptcha();
 });
 
 // Initialize account functionality
@@ -50,21 +87,24 @@ async function initializeAuth() {
             if (userSnap.exists()) {
                 userProfile = userSnap.data();
             } else {
-                userProfile = {
-                    name: user.displayName || '',
-                    phone: user.phoneNumber || '',
-                    email: user.email || '',
-                    gender: '',
-                    updatedAt: serverTimestamp()
-                };
-                await setDoc(userDocRef, userProfile);
+                userProfile = null; // Will trigger first-time profile completion
             }
-            if (!userProfile.name) userProfile.name = user.displayName || '';
-            if (!userProfile.email) userProfile.email = user.email || '';
+            // If user has profile, patch missing display fields for UI only
+            if (userProfile) {
+                if (!userProfile.name) userProfile.name = user.displayName || '';
+                if (!userProfile.email) userProfile.email = user.email || '';
+            }
             await loadUserOrders();
             renderProfile();
             renderOrders();
             switchTab('orders');
+
+            // If no user profile exists, force profile completion flow with correct method
+            if (!userSnap.exists()) {
+                const via = detectLoginMethod(user);
+                const prefill = buildPrefillForMethod(user, via);
+                openCompleteProfileModal(user, { via, prefill });
+            }
         } else {
             loginPrompt.style.display = 'block';
             document.querySelector('.account-nav').style.display = 'none';
@@ -141,7 +181,28 @@ function setupEventListeners() {
     });
 
     loginBtn.addEventListener('click', handleLogin);
+    if (loginPhoneBtn) loginPhoneBtn.addEventListener('click', () => {
+        phoneLoginModal.style.display = 'flex';
+        // Prefill +880 and attach input guards
+        if (phoneNumberInput) {
+            phoneNumberInput.value = '+880';
+            sendOtpBtn.disabled = true;
+            attachPhoneInputGuards();
+        }
+        ensureInvisibleRecaptcha();
+    });
     logoutBtn.addEventListener('click', handleLogout);
+
+    // Phone login modal open/close
+    if (closePhoneModal) closePhoneModal.addEventListener('click', () => phoneLoginModal.style.display = 'none');
+    if (cancelPhoneBtn) cancelPhoneBtn.addEventListener('click', () => phoneLoginModal.style.display = 'none');
+    if (sendOtpBtn) sendOtpBtn.addEventListener('click', onSendOtpClick);
+    if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', onVerifyOtpClick);
+
+    // Complete profile modal events
+    if (closeCompleteProfile) closeCompleteProfile.addEventListener('click', () => { completeProfileModal.style.display = 'none'; isCompleteProfileOpen = false; });
+    if (cpCancelBtn) cpCancelBtn.addEventListener('click', () => { completeProfileModal.style.display = 'none'; isCompleteProfileOpen = false; });
+    if (completeProfileForm) completeProfileForm.addEventListener('submit', onCompleteProfileSubmit);
 }
 
 // Tab switching
@@ -163,16 +224,110 @@ function switchTab(tabName) {
     });
 }
 
+function detectLoginMethod(user) {
+    try {
+        const providers = user?.providerData?.map(p => p.providerId) || [];
+        if (providers.includes('phone')) return 'phone';
+        if (providers.includes('google.com')) return 'google';
+        return user?.phoneNumber ? 'phone' : 'google';
+    } catch (_) {
+        return user?.phoneNumber ? 'phone' : 'google';
+    }
+}
+
+function buildPrefillForMethod(user, via) {
+    if (via === 'phone') {
+        return { phone: user.phoneNumber || '', email: user.email || '', name: user.displayName || '', gender: '' };
+    }
+    return { name: user.displayName || '', email: user.email || '', phone: '', gender: '' };
+}
+
+function openCompleteProfileModal(user, options = { via: 'phone', prefill: {} }) {
+    if (isCompleteProfileOpen) return;
+    // Configure which fields are required based on login method
+    const via = options.via || 'phone';
+    const pre = options.prefill || {};
+
+    // Phone login: require name, gender, optional email, phone prefilled and locked
+    // Google login: require phone, name optional (prefilled), gender optional, email prefilled optional
+    if (via === 'phone') {
+        cpPhoneGroup.style.display = 'block';
+        cpEmailGroup.style.display = 'block';
+        cpNameGroup.style.display = 'block';
+        cpGenderGroup.style.display = 'block';
+        cpPhoneInput.value = pre.phone || user.phoneNumber || '';
+        cpEmailInput.value = pre.email || user.email || '';
+        cpNameInput.value = pre.name || '';
+        cpGenderSelect.value = pre.gender || '';
+        cpPhoneInput.disabled = true; // phone verified via OTP
+    } else if (via === 'google') {
+        cpPhoneGroup.style.display = 'block';
+        cpEmailGroup.style.display = 'block';
+        cpNameGroup.style.display = 'block';
+        cpGenderGroup.style.display = 'block';
+        // Prefill +880 and allow typing remaining digits
+        cpPhoneInput.value = pre.phone || '+880';
+        cpEmailInput.value = pre.email || user.email || '';
+        cpNameInput.value = pre.name || user.displayName || '';
+        cpGenderSelect.value = pre.gender || '';
+        cpPhoneInput.disabled = false;
+        attachCPPhoneInputGuards();
+    }
+
+    completeProfileModal.style.display = 'flex';
+    isCompleteProfileOpen = true;
+}
+
+async function onCompleteProfileSubmit(e) {
+    e.preventDefault();
+    if (!auth.currentUser) return;
+
+    const name = cpNameInput.value.trim();
+    const gender = cpGenderSelect.value;
+    const email = cpEmailInput.value.trim();
+    const phoneNormalized = normalizeBangladeshPhoneNumber(cpPhoneInput.value.trim()) || cpPhoneInput.value.trim();
+
+    // Minimal validation: phone required always for google path
+    if (!phoneNormalized) {
+        showToast('Please provide a valid phone number', true);
+        return;
+    }
+
+    try {
+        cpSaveBtn.disabled = true;
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        const profilePayload = {
+            name: name || auth.currentUser.displayName || '',
+            phone: auth.currentUser.phoneNumber || phoneNormalized,
+            email: email || auth.currentUser.email || '',
+            gender: gender || '',
+            updatedAt: serverTimestamp()
+        };
+        await setDoc(userDocRef, profilePayload, { merge: true });
+        userProfile = profilePayload;
+        completeProfileModal.style.display = 'none';
+        isCompleteProfileOpen = false;
+        renderProfile();
+        showToast('Profile completed successfully');
+    } catch (err) {
+        console.error('complete profile error', err);
+        showToast('Failed to save profile', true);
+    } finally {
+        cpSaveBtn.disabled = false;
+    }
+}
 // Profile Management
 function renderProfile() {
-    profileNameDisplay.textContent = userProfile.name || 'User Name';
-    profilePhoneDisplay.textContent = userProfile.phone || '+8801XXXXXXXXX';
-    profileImg.src = currentUser.photoURL || 'https://ui-avatars.com/api/?name=' + (userProfile.name || 'User');
+    const displayName = userProfile?.name || currentUser?.displayName || 'User Name';
+    const displayPhone = userProfile?.phone || currentUser?.phoneNumber || '+8801XXXXXXXXX';
+    profileNameDisplay.textContent = displayName;
+    profilePhoneDisplay.textContent = displayPhone;
+    profileImg.src = currentUser?.photoURL || 'https://ui-avatars.com/api/?name=' + (displayName || 'User');
     // Populate modal form
-    document.getElementById('profile-name').value = userProfile.name || '';
-    document.getElementById('profile-phone').value = userProfile.phone || '';
-    document.getElementById('profile-email').value = userProfile.email || '';
-    document.getElementById('profile-gender').value = userProfile.gender || '';
+    document.getElementById('profile-name').value = userProfile?.name || '';
+    document.getElementById('profile-phone').value = userProfile?.phone || '';
+    document.getElementById('profile-email').value = userProfile?.email || '';
+    document.getElementById('profile-gender').value = userProfile?.gender || '';
 }
 
 // Orders Management
@@ -439,7 +594,21 @@ window.editAddress = openAddressModal;
 async function handleLogin() {
     try {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const userDocRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userDocRef);
+        if (!userSnap.exists()) {
+            openCompleteProfileModal(user, {
+                via: 'google',
+                prefill: {
+                    name: user.displayName || '',
+                    email: user.email || '',
+                    phone: '',
+                    gender: ''
+                }
+            });
+        }
     } catch (error) {
         console.error('Login error:', error);
         showToast('Failed to login. Please try again.', true);
@@ -452,6 +621,207 @@ async function handleLogout() {
     } catch (error) {
         console.error('Logout error:', error);
         showToast('Failed to logout', true);
+    }
+}
+function ensureInvisibleRecaptcha() {
+    try {
+        if (recaptchaVerifierInstance) return recaptchaVerifierInstance;
+        // Use stable hidden container so we always reuse the same invisible widget
+        recaptchaVerifierInstance = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible',
+            callback: () => {},
+        });
+        return recaptchaVerifierInstance;
+    } catch (e) {
+        console.error('Failed to init reCAPTCHA', e);
+        showToast('Failed to initialize verification. Please refresh.', true);
+        return null;
+    }
+}
+
+function attachPhoneInputGuards() {
+    if (!phoneNumberInput) return;
+    const PREFIX = '+880';
+
+    const isValidBangladeshE164 = (value) => /^\+8801\d{9}$/.test(value);
+
+    const enforce = () => {
+        let v = phoneNumberInput.value || '';
+        // Remove any non-digit except leading +
+        v = v.replace(/(?!^)[^\d]/g, '');
+        if (!v.startsWith('+')) v = '+' + v;
+        if (!v.startsWith(PREFIX)) {
+            // If user pasted local format, normalize into +880
+            const digits = v.replace(/\D/g, '');
+            if (/^01\d{9}$/.test(digits)) {
+                v = PREFIX + digits.slice(1);
+            } else if (/^8801\d{9}$/.test(digits)) {
+                v = '+' + digits;
+            } else if (/^1\d{9}$/.test(digits)) {
+                v = PREFIX + '1' + digits.slice(1);
+            } else {
+                v = PREFIX;
+            }
+        }
+        // Keep only 10 digits after +880
+        const after = v.slice(PREFIX.length).replace(/\D/g, '').slice(0, 10);
+        v = PREFIX + after;
+        phoneNumberInput.value = v;
+        // Enable/disable send button based on validity
+        sendOtpBtn.disabled = !isValidBangladeshE164(v);
+    };
+
+    const preventPrefixDeletion = (e) => {
+        const start = phoneNumberInput.selectionStart || 0;
+        if ((e.key === 'Backspace' && start <= 4) || (e.key === 'Delete' && start < 4)) {
+            e.preventDefault();
+            phoneNumberInput.setSelectionRange(4, 4);
+        }
+    };
+
+    phoneNumberInput.removeEventListener('input', enforce);
+    phoneNumberInput.removeEventListener('keydown', preventPrefixDeletion);
+    phoneNumberInput.addEventListener('input', enforce);
+    phoneNumberInput.addEventListener('keydown', preventPrefixDeletion);
+    // Initial enforce
+    enforce();
+}
+
+function attachCPPhoneInputGuards() {
+    if (!cpPhoneInput) return;
+    const PREFIX = '+880';
+
+    const isValidBangladeshE164 = (value) => /^\+8801\d{9}$/.test(value);
+
+    const enforce = () => {
+        let v = cpPhoneInput.value || '';
+        v = v.replace(/(?!^)[^\d]/g, '');
+        if (!v.startsWith('+')) v = '+' + v;
+        if (!v.startsWith(PREFIX)) {
+            const digits = v.replace(/\D/g, '');
+            if (/^01\d{9}$/.test(digits)) {
+                v = PREFIX + digits.slice(1);
+            } else if (/^8801\d{9}$/.test(digits)) {
+                v = '+' + digits;
+            } else if (/^1\d{9}$/.test(digits)) {
+                v = PREFIX + '1' + digits.slice(1);
+            } else {
+                v = PREFIX;
+            }
+        }
+        const after = v.slice(PREFIX.length).replace(/\D/g, '').slice(0, 10);
+        v = PREFIX + after;
+        cpPhoneInput.value = v;
+    };
+
+    const preventPrefixDeletion = (e) => {
+        const start = cpPhoneInput.selectionStart || 0;
+        if ((e.key === 'Backspace' && start <= 4) || (e.key === 'Delete' && start < 4)) {
+            e.preventDefault();
+            cpPhoneInput.setSelectionRange(4, 4);
+        }
+    };
+
+    cpPhoneInput.removeEventListener('input', enforce);
+    cpPhoneInput.removeEventListener('keydown', preventPrefixDeletion);
+    cpPhoneInput.addEventListener('input', enforce);
+    cpPhoneInput.addEventListener('keydown', preventPrefixDeletion);
+    enforce();
+}
+
+function normalizeBangladeshPhoneNumber(inputValue) {
+    if (!inputValue) return '';
+    const trimmed = inputValue.trim();
+    const onlyDigits = trimmed.replace(/\D/g, '');
+    // If user already typed with plus sign, trust E.164 as long as it starts with +8801XXXXXXXXX
+    if (trimmed.startsWith('+')) {
+        const cleaned = '+' + onlyDigits;
+        return /^\+8801\d{9}$/.test(cleaned) ? cleaned : '';
+    }
+    // If starts with 8801XXXXXXXXX
+    if (/^8801\d{9}$/.test(onlyDigits)) {
+        return '+' + onlyDigits;
+    }
+    // If starts with 01XXXXXXXXX (common local format)
+    if (/^01\d{9}$/.test(onlyDigits)) {
+        return '+880' + onlyDigits.slice(1);
+    }
+    // If user entered 1XXXXXXXXX (missing leading 0)
+    if (/^1\d{9}$/.test(onlyDigits)) {
+        return '+8801' + onlyDigits.slice(1);
+    }
+    return '';
+}
+
+async function onSendOtpClick() {
+    // Throttle to reduce repeated reCAPTCHA challenges
+    const now = Date.now();
+    if (now - lastOtpSentAtMs < OTP_SEND_COOLDOWN_MS) {
+        const waitSec = Math.ceil((OTP_SEND_COOLDOWN_MS - (now - lastOtpSentAtMs)) / 1000);
+        showToast(`Please wait ${waitSec}s before requesting another code.`);
+        return;
+    }
+    const phoneNumberRaw = phoneNumberInput.value.trim();
+    const phoneNumber = normalizeBangladeshPhoneNumber(phoneNumberRaw);
+
+    if (!phoneNumber) { showToast('Please enter a valid Bangladesh number (e.g., 01XXXXXXXXX)', true); return; }
+
+    const verifier = ensureInvisibleRecaptcha();
+    if (!verifier) return;
+
+    try {
+        sendOtpBtn.disabled = true;
+        confirmationResultGlobal = await signInWithPhoneNumber(auth, phoneNumber, verifier);
+        lastOtpSentAtMs = Date.now();
+        otpSection.style.display = 'block';
+        // Show normalized number back to user for clarity
+        phoneNumberInput.value = phoneNumber;
+        showToast('Verification code sent');
+    } catch (error) {
+        console.error('send otp error', error);
+        showToast('Failed to send code. Check number format with country code.', true);
+    }
+    finally {
+        sendOtpBtn.disabled = false;
+    }
+}
+
+async function onVerifyOtpClick() {
+    const code = otpCodeInput.value.trim();
+    if (!code || !confirmationResultGlobal) {
+        showToast('Enter the code from SMS', true);
+        return;
+    }
+    try {
+        verifyOtpBtn.disabled = true;
+        const result = await confirmationResultGlobal.confirm(code);
+        const user = result.user;
+        // After OTP success, check if profile exists; if exists -> normal flow, else -> open completion
+        const userDocRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userDocRef);
+        phoneLoginModal.style.display = 'none';
+        otpSection.style.display = 'none';
+        otpCodeInput.value = '';
+
+        if (userSnap.exists()) {
+            showToast('Logged in successfully');
+        } else {
+            openCompleteProfileModal(user, {
+                via: 'phone',
+                prefill: {
+                    phone: user.phoneNumber || normalizeBangladeshPhoneNumber(phoneNumberInput.value.trim()) || phoneNumberInput.value.trim(),
+                    email: '',
+                    name: '',
+                    gender: ''
+                }
+            });
+        }
+    } catch (error) {
+        console.error('verify otp error', error);
+        showToast('Invalid code. Please try again.', true);
+    }
+    finally {
+        verifyOtpBtn.disabled = false;
     }
 }
 window.deleteAddress = async (addressId) => {

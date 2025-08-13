@@ -79,7 +79,7 @@ function updateOrderSummary() {
         <div class="cart-item-summary" data-id="${item.id}">
             <div class="cart-item-image">
                 ${item.image 
-                    ? `<img src="${item.image}" alt="${item.name}">`
+                    ? `<img src="${item.image}" alt="${item.name}" loading="lazy" width="64" height="64">`
                     : '<div style="width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 0.8rem;">No Image</div>'
                 }
             </div>

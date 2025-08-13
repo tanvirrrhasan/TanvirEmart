@@ -191,10 +191,10 @@ body {
 .mobile-menu {
     display: block; /* Always block for the sidebar container */
     position: fixed;
-    top: 48px; /* Start below the   header */
-    right: -67vw; /* Hide off-screen to the right (approx 66% of viewport width) */
-    width: 66vw; /* Take 2/3rd of the viewport width */
-    height: calc(100% - 48px); /* Adjust height to fill remaining space */
+    top: 60px; /* Start below the header (header height is 60px) */
+    right: -50vw; /* Hide off-screen to the right (50% of viewport width) */
+    width: 20vw; /* Take 50% of the viewport width */
+    height: calc(100% - 60px); /* Adjust height to fill remaining space */
     background: #3B5D7A; /* Different background for sidebar */
     box-shadow: -2px 0 10px rgba(0,0,0,0.3); /* Shadow for slide effect from right */
     z-index: 999; /* Lower z-index than header so header remains on top */
@@ -206,20 +206,54 @@ body {
     right: 0; /* Slide in from right when active */
 }
 
+/* Background overlay when mobile menu is active */
+.mobile-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 998; /* Just below mobile menu */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+.mobile-menu-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
 .mobile-menu .mobile-nav ul {
     flex-direction: column; /* Stack nav items vertically */
     gap: 0;
     list-style: none; /* Remove bullet points */
     padding: 0; /* Remove default padding for ul */
+    margin: 0; /* Remove default margin */
 }
 
 .mobile-menu .mobile-nav li {
-    margin: 0.5rem 0;
+    margin: 0; /* Remove margin to eliminate gaps */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Add subtle border between items */
 }
 
 .mobile-menu .mobile-nav a {
-    padding: 0.8rem 1rem;
+    padding: 1rem 1.5rem; /* Increase padding for better touch targets */
     border-radius: 0;
+    display: block; /* Make entire area clickable */
+    color: #EFE9D5;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.mobile-menu .mobile-nav a:hover,
+.mobile-menu .mobile-nav a.active {
+    background: #71BBB2;
+    color: #27445D;
 }
 
 /* Main Content */
@@ -905,7 +939,7 @@ main {
     align-items: center;
     padding: 0.5rem 0;
     box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-    z-index: 1000;
+    z-index: 1001 !important;
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     border-top: 1px solid #497D74;
@@ -924,7 +958,7 @@ main {
     transition: all 0.3s ease;
     flex-grow: 1;
     text-align: center;
-    max-width: 25%; /* Ensure even distribution */
+    max-width: 20%; /* Updated from 25% to 20% for 5 buttons */
 }
 
 .bottom-nav-link i {
@@ -1011,9 +1045,9 @@ main {
         width: 100%;
     }
     .mobile-menu {
-        width: 80vw; /* On very small screens, take 80% width */
-        right: -81vw; /* Hide full width off-screen to the right */
-        height: calc(100% - 48px); /* Adjust height */
+        width: 50vw; /* On very small screens, take 70% width */
+        right: -71vw; /* Hide full width off-screen to the right */
+        height: calc(100% - 60px); /* Adjust height */
     }
     .mobile-menu.active {
         right: 0; /* Show full width from right */

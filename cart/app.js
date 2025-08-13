@@ -1,5 +1,5 @@
 import { db } from '../firebase-config.js'; // Assuming firebase-config.js is one level up
-import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import { collection, getDocs, query, orderBy, where, documentId } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // Global variables
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -35,30 +35,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('hideBottomNav') === 'true') {
         document.body.classList.add('hide-bottom-nav');
+        setupProductPageMode();
     }
 });
 
-// Load product details for items in cart from Firebase
+// Setup product page mode (hide bottom nav, show back button)
+function setupProductPageMode() {
+    const cartPageContainer = document.querySelector('.cart-page-container');
+    const cartHeader = document.getElementById('cartHeader');
+    const backButton = document.getElementById('backButton');
+    const bottomNav = document.getElementById('bottom-nav');
+    
+    if (cartPageContainer) cartPageContainer.classList.add('from-product');
+    if (cartHeader) cartHeader.classList.add('from-product');
+    if (backButton) backButton.style.display = 'block';
+    if (bottomNav) bottomNav.style.display = 'none';
+}
+
+// Go back function
+window.goBack = function() {
+    // Go back to previous page
+    window.history.back();
+};
+
+// Load product details for items in cart from Firebase (batched 'in' queries)
 async function loadCartProducts() {
-    if (cart.length === 0) {
-        return;
-    }
+    if (cart.length === 0) return;
     try {
         const productIds = cart.map(item => item.id);
-        if (productIds.length > 0) {
-            // Fetch all products to match with cart items.
-            // A more optimized approach would be to query specific products,
-            // but Firestore 'in' query has a limit of 10.
-            // For simplicity, fetching all products for now.
-            const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+        products = [];
+        // Firestore 'in' supports up to 10 ids; batch if needed
+        for (let i = 0; i < productIds.length; i += 10) {
+            const batchIds = productIds.slice(i, i + 10);
+            const q = query(collection(db, 'products'), where(documentId(), 'in', batchIds));
             const snapshot = await getDocs(q);
-            const allProducts = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            // Filter products that are in the cart
-            products = allProducts.filter(p => productIds.includes(p.id));
+            products.push(...snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         }
     } catch (error) {
         console.error('Error loading product details for cart:', error);
@@ -234,7 +245,7 @@ function updateCartDisplay() {
                     </div>
                     <div class="cart-item-image">
                         ${item.image
-                            ? `<img src="${item.image}" alt="${item.name}">`
+                            ? `<img src="${item.image}" alt="${item.name}" loading="lazy" width="80" height="80">`
                             : '<div style="width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 0.8rem;">No Image</div>'
                         }
                     </div>

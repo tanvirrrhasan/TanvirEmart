@@ -33,6 +33,7 @@ const closeModal = document.getElementById('close-modal');
 // const checkoutBtn = document.getElementById('checkout-btn'); // Moved to cart/app.js
 const mobileMenuBtn = document.getElementById('mobile-menu-btn');
 const mobileMenu = document.getElementById('mobile-menu');
+const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
 const bannerContent = document.querySelector('.banner-content');
 const bottomNavBar = document.getElementById('bottom-nav'); // New: Get bottom navigation bar
 
@@ -307,7 +308,7 @@ function renderBannerCarousel(urls) {
     if (!urls || urls.length === 0) return;
     bannerContent.innerHTML = `
         <div class="banner-carousel">
-            <img src="${urls[0]}" class="banner-carousel-img" alt="Banner">
+            <img src="${urls[0]}" class="banner-carousel-img" alt="Banner" width="1200" height="300" decoding="async" fetchpriority="high" sizes="(max-width: 768px) 100vw, 1200px">
             <div class="banner-carousel-dots">
                 ${urls.map((_,i)=>`<button class="banner-carousel-dot${i===0?' active':''}" data-index="${i}"></button>`).join('')}
             </div>
@@ -468,12 +469,14 @@ function performSearch(searchTerm) {
         const productDesc = product.description.toLowerCase();
         const categoriesArr = Array.isArray(product.categories) ? product.categories : [product.category];
         const productCategories = categoriesArr.map(cat => cat ? cat.toLowerCase() : '').join(' ');
+        const productKeywords = Array.isArray(product.keywords) ? product.keywords.map(k => k.toLowerCase()).join(' ') : '';
         
         // Check if any search word matches any part of the product
         return searchWords.some(word => 
             productName.includes(word) ||
             productDesc.includes(word) ||
-            productCategories.includes(word)
+            productCategories.includes(word) ||
+            productKeywords.includes(word)
         );
     });
 
@@ -515,6 +518,7 @@ function calculateMatchScore(product, searchWords, fullSearchTerm) {
     const productDesc = product.description.toLowerCase();
     const categoriesArr = Array.isArray(product.categories) ? product.categories : [product.category];
     const productCategories = categoriesArr.map(cat => cat ? cat.toLowerCase() : '').join(' ');
+    const productKeywords = Array.isArray(product.keywords) ? product.keywords.map(k => k.toLowerCase()).join(' ') : '';
     
     let score = 0;
     
@@ -538,6 +542,11 @@ function calculateMatchScore(product, searchWords, fullSearchTerm) {
         score += 200;
     }
     
+    // Keywords exact match
+    if (productKeywords.includes(fullSearchTerm)) {
+        score += 150;
+    }
+    
     // Count how many search words match in name
     const nameMatches = searchWords.filter(word => productName.includes(word)).length;
     score += nameMatches * 100;
@@ -549,6 +558,10 @@ function calculateMatchScore(product, searchWords, fullSearchTerm) {
     // Count how many search words match in categories
     const catMatches = searchWords.filter(word => productCategories.includes(word)).length;
     score += catMatches * 75;
+    
+    // Count how many search words match in keywords
+    const keywordMatches = searchWords.filter(word => productKeywords.includes(word)).length;
+    score += keywordMatches * 80;
     
     // Bonus for shorter product names (more specific matches)
     if (productName.length < 20) {
@@ -660,7 +673,7 @@ function renderCategories() {
         categoryCard.className = 'category-card';
         categoryCard.innerHTML = `
             <a href="#" onclick="filterByCategory('${category.name}'); return false;">
-                <img src="${category.imageUrl || 'https://via.placeholder.com/100'}" alt="${category.name}">
+                <img src="${category.imageUrl || 'https://via.placeholder.com/100'}" alt="${category.name}" loading="lazy" width="80" height="80">
                 <span>${category.name}</span>
             </a>
         `;
@@ -840,6 +853,12 @@ function toggleMobileMenu() {
     if (mobileMenu) {
         const isActive = mobileMenu.classList.contains('active');
         mobileMenu.classList.toggle('active');
+        
+        // Toggle overlay
+        if (mobileMenuOverlay) {
+            mobileMenuOverlay.classList.toggle('active');
+        }
+        
         const menuIcon = mobileMenuBtn.querySelector('i');
         
         console.log('toggleMobileMenu called. Menu is active before toggle:', isActive);
@@ -859,12 +878,19 @@ function toggleMobileMenu() {
     }
 }
 
-// Close mobile menu when clicking outside
+// Close mobile menu when clicking outside or on overlay
 document.addEventListener('click', (e) => {
     // Check if the clicked element is not the mobile menu itself, and not the mobile menu button or its child icon
     if (mobileMenu && !mobileMenu.contains(e.target) && e.target !== mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
         if (mobileMenu.classList.contains('active')) {
             toggleMobileMenu(); // Use the existing toggle function to close it and revert icon
+        }
+    }
+    
+    // Close mobile menu when clicking on overlay
+    if (e.target === mobileMenuOverlay) {
+        if (mobileMenu && mobileMenu.classList.contains('active')) {
+            toggleMobileMenu();
         }
     }
 });
@@ -950,6 +976,17 @@ window.testNavigation = function() {
     console.log('History length:', history.length);
     console.log('Main page scroll Y:', localStorage.getItem('mainPageScrollY'));
     console.log('Product list scroll Y:', localStorage.getItem('productListPageScrollY'));
+};
+
+// Test function for keyword search debugging
+window.testKeywordSearch = function(keyword) {
+    console.log('Testing keyword search for:', keyword);
+    const matchingProducts = products.filter(product => {
+        const productKeywords = Array.isArray(product.keywords) ? product.keywords.map(k => k.toLowerCase()) : [];
+        return productKeywords.some(k => k.includes(keyword.toLowerCase()));
+    });
+    console.log('Products with keyword "' + keyword + '":', matchingProducts.map(p => ({ name: p.name, keywords: p.keywords })));
+    return matchingProducts;
 };
 
 // Hide loading after initialization
@@ -1078,30 +1115,52 @@ function showSearchSuggestions(searchTerm) {
         const productDesc = product.description.toLowerCase();
         const categoriesArr = Array.isArray(product.categories) ? product.categories : [product.category];
         const productCategories = categoriesArr.map(cat => cat ? cat.toLowerCase() : '').join(' ');
+        const productKeywords = Array.isArray(product.keywords) ? product.keywords.map(k => k.toLowerCase()).join(' ') : '';
         
         return productName.includes(term) ||
                productDesc.includes(term) ||
-               productCategories.includes(term);
+               productCategories.includes(term) ||
+               productKeywords.includes(term);
     });
     
     // Sort by relevance
     matchingProducts.sort((a, b) => {
         const aName = a.name.toLowerCase();
         const bName = b.name.toLowerCase();
+        const aKeywords = Array.isArray(a.keywords) ? a.keywords.map(k => k.toLowerCase()) : [];
+        const bKeywords = Array.isArray(b.keywords) ? b.keywords.map(k => k.toLowerCase()) : [];
         
-        // Exact match gets highest priority
+        // Check match types for both products
+        const aNameMatch = aName.includes(term);
+        const bNameMatch = bName.includes(term);
+        const aKeywordMatch = aKeywords.some(keyword => keyword.includes(term));
+        const bKeywordMatch = bKeywords.some(keyword => keyword.includes(term));
+        
+        // Priority 1: Exact name match
         const aExactMatch = aName === term;
         const bExactMatch = bName === term;
         
         if (aExactMatch && !bExactMatch) return -1;
         if (!aExactMatch && bExactMatch) return 1;
         
-        // Then by name starts with
+        // Priority 2: Name starts with
         const aStartsWith = aName.startsWith(term);
         const bStartsWith = bName.startsWith(term);
         
         if (aStartsWith && !bStartsWith) return -1;
         if (!aStartsWith && bStartsWith) return 1;
+        
+        // Priority 3: Name contains (but not starts with)
+        if (aNameMatch && !bNameMatch) return -1;
+        if (!aNameMatch && bNameMatch) return 1;
+        
+        // Priority 4: Keyword match (only if name doesn't match)
+        if (!aNameMatch && aKeywordMatch && !bNameMatch && !bKeywordMatch) return -1;
+        if (!bNameMatch && bKeywordMatch && !aNameMatch && !aKeywordMatch) return 1;
+        
+        // Priority 5: Both name and keyword match - name takes priority
+        if (aNameMatch && aKeywordMatch && bNameMatch && !bKeywordMatch) return -1;
+        if (bNameMatch && bKeywordMatch && aNameMatch && !aKeywordMatch) return 1;
         
         // Finally alphabetically
         return aName.localeCompare(bName);
@@ -1112,7 +1171,25 @@ function showSearchSuggestions(searchTerm) {
     
     // Create suggestions dropdown
     const suggestionsContainer = document.querySelector('.search-suggestions') || createSearchSuggestionsContainer();
-    suggestionsContainer.innerHTML = searchSuggestions.map((product, index) => `
+    suggestionsContainer.innerHTML = searchSuggestions.map((product, index) => {
+        // Check match types
+        const productName = product.name.toLowerCase();
+        const productKeywords = Array.isArray(product.keywords) ? product.keywords.map(k => k.toLowerCase()) : [];
+        
+        const isNameMatch = productName.includes(term);
+        const isKeywordMatch = productKeywords.some(keyword => keyword.includes(term));
+        
+        // Determine match type for display
+        let matchType = '';
+        if (isNameMatch && isKeywordMatch) {
+            matchType = 'Name & Keyword match';
+        } else if (isNameMatch) {
+            matchType = 'Name match';
+        } else if (isKeywordMatch) {
+            matchType = 'Keyword match';
+        }
+        
+        return `
         <div class="suggestion-item product-suggestion" data-product-id="${product.id}" data-index="${index}">
             <div class="suggestion-product-image">
                 ${product.thumbnailUrl
@@ -1126,9 +1203,11 @@ function showSearchSuggestions(searchTerm) {
             <div class="suggestion-product-info">
                 <div class="suggestion-product-name">${product.name}</div>
                 <div class="suggestion-product-price">৳${product.price}</div>
+                ${matchType ? `<div class="suggestion-match-type" style="font-size: 11px; color: ${isNameMatch ? '#43a047' : '#f38124'}; margin-top: 2px;">✓ ${matchType}</div>` : ''}
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
     
     // Add click event listeners to suggestion items
     suggestionsContainer.querySelectorAll('.suggestion-item').forEach(item => {

@@ -13,7 +13,9 @@ const searchBtn = document.getElementById('search-btn');
 const clearSearchInput = document.getElementById('clear-search-input');
 const mobileMenuBtn = document.getElementById('mobile-menu-btn');
 const mobileMenu = document.getElementById('mobile-menu');
+const mobileMenuOverlay = document.getElementById('mobile-menu-overlay'); // Added this line
 const navCartProductPage = document.getElementById('nav-cart-product-page'); // New: Get the small cart button
+const navChatProductPage = document.getElementById('nav-chat-product-page'); // New: Get the chat button
 
 // Variation modal elements
 const variationModal = document.getElementById('variation-modal');
@@ -81,7 +83,10 @@ function hideLoading() {
 
 // Event Listeners setup function
 function setupEventListeners() {
+    console.log('Setting up event listeners...');
+    
     if (backToShopBtn) {
+        console.log('Back to shop button found');
         backToShopBtn.addEventListener('click', () => {
             // Prevent double navigation
             if (isNavigatingBack) {
@@ -118,15 +123,24 @@ function setupEventListeners() {
     }
 
     if (addToCartBtnBottom) {
+        console.log('Add to cart button found');
         addToCartBtnBottom.addEventListener('click', addToCart);
+    } else {
+        console.error('Add to cart button not found');
     }
 
     if (buyNowBtnBottom) {
+        console.log('Buy now button found');
         buyNowBtnBottom.addEventListener('click', buyNow);
+    } else {
+        console.error('Buy now button not found');
     }
 
     if (searchBtn) {
+        console.log('Search button found');
         searchBtn.addEventListener('click', handleSearch);
+    } else {
+        console.error('Search button not found');
     }
 
     if (searchInput) {
@@ -206,31 +220,81 @@ function setupEventListeners() {
     }
 
     if (clearSearchInput) {
+        console.log('Clear search input button found');
         clearSearchInput.addEventListener('click', () => {
             searchInput.value = '';
             searchSuggestions = [];
             hideSearchSuggestions();
             selectedSuggestionIndex = -1;
         });
+    } else {
+        console.error('Clear search input button not found');
     }
 
     if (mobileMenuBtn) {
+        console.log('Mobile menu button found');
         mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+    } else {
+        console.error('Mobile menu button not found');
+    }
+
+    // Close mobile menu when clicking on overlay
+    if (mobileMenuOverlay) {
+        console.log('Mobile menu overlay found');
+        mobileMenuOverlay.addEventListener('click', () => {
+            if (mobileMenu && mobileMenu.classList.contains('active')) {
+                toggleMobileMenu();
+            }
+        });
+    } else {
+        console.error('Mobile menu overlay not found');
     }
 
     if (navCartProductPage) {
+        console.log('Nav cart product page button found');
         navCartProductPage.addEventListener('click', (e) => {
             e.preventDefault(); // Prevent default link behavior
+            console.log('Navigating to cart page');
             window.location.href = '../cart/index.html?hideBottomNav=true'; // Add parameter to hide bottom nav
         });
+    } else {
+        console.error('Nav cart product page button not found');
+    }
+
+    if (navChatProductPage) {
+        console.log('Nav chat product page button found');
+        navChatProductPage.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent default link behavior
+            console.log('Navigating to message page with product info');
+            if (currentProduct) {
+                // Store product info in localStorage for the message page
+                const productInfo = {
+                    id: currentProduct.id,
+                    name: currentProduct.name,
+                    price: currentProduct.price,
+                    image: currentProduct.thumbnailUrl || (currentProduct.imageUrls && currentProduct.imageUrls[0]) || '',
+                    description: currentProduct.description
+                };
+                localStorage.setItem('chatProductInfo', JSON.stringify(productInfo));
+                window.location.href = '../message/';
+            } else {
+                window.location.href = '../message/';
+            }
+        });
+    } else {
+        console.error('Nav chat product page button not found');
     }
 
     // Variation modal event listeners
     if (closeVariationModal) {
+        console.log('Close variation modal button found');
         closeVariationModal.addEventListener('click', closeVariationModalFunc);
+    } else {
+        console.error('Close variation modal button not found');
     }
 
     if (addToCartConfirmBtn) {
+        console.log('Add to cart confirm button found');
         addToCartConfirmBtn.addEventListener('click', () => {
             // Check if this is for buy now or add to cart based on button text
             const buttonText = addToCartConfirmBtn.textContent || addToCartConfirmBtn.innerHTML;
@@ -240,20 +304,24 @@ function setupEventListeners() {
                 confirmAddToCart();
             }
         });
+    } else {
+        console.error('Add to cart confirm button not found');
     }
 
     // Close modal when clicking outside
     if (variationModal) {
+        console.log('Variation modal found');
         variationModal.addEventListener('click', (e) => {
             if (e.target === variationModal) {
                 closeVariationModalFunc();
             }
         });
+    } else {
+        console.error('Variation modal not found');
     }
 
-    document.querySelectorAll('.mobile-nav .nav-link').forEach(link => {
-        link.addEventListener('click', handleNavigation);
-    });
+    // Set up mobile navigation event listeners
+    setupMobileNavigationListeners();
     
     // Handle clicks outside search suggestions
     document.addEventListener('click', (e) => {
@@ -269,11 +337,21 @@ function toggleMobileMenu() {
     if (mobileMenu) {
         const isActive = mobileMenu.classList.contains('active');
         mobileMenu.classList.toggle('active');
+
+        // Toggle overlay
+        if (mobileMenuOverlay) {
+            mobileMenuOverlay.classList.toggle('active');
+        }
+
         const menuIcon = mobileMenuBtn.querySelector('i');
 
         if (mobileMenu.classList.contains('active')) {
             menuIcon.classList.remove('fa-bars');
             menuIcon.classList.add('fa-times');
+            // Set up navigation listeners when menu opens
+            setTimeout(() => {
+                setupMobileNavigationListeners();
+            }, 100);
         } else {
             menuIcon.classList.remove('fa-times');
             menuIcon.classList.add('fa-bars');
@@ -283,22 +361,42 @@ function toggleMobileMenu() {
 
 // Handle search from product detail page
 function handleSearch() {
+    console.log('handleSearch function called');
     const searchTerm = searchInput.value.trim();
     if (searchTerm === '') {
         showToast('Please enter a search term', true);
         return;
     }
+    console.log('Redirecting to search with term:', searchTerm);
     // Redirect to main page with search parameter
     window.location.href = `../index.html?search=${encodeURIComponent(searchTerm)}`;
 }
 
+// Set up mobile navigation event listeners
+function setupMobileNavigationListeners() {
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav .nav-link');
+    console.log('Mobile nav links found:', mobileNavLinks.length);
+    mobileNavLinks.forEach((link, index) => {
+        console.log(`Setting up event listener for link ${index}:`, link.textContent, link.href);
+        // Remove any existing event listeners to prevent duplicates
+        link.removeEventListener('click', handleNavigation);
+        link.addEventListener('click', handleNavigation);
+    });
+}
+
 // Handle navigation from mobile menu on product detail page
 function handleNavigation(e) {
+    console.log('handleNavigation function called');
     e.preventDefault();
     const targetHref = this.getAttribute('href');
+    console.log('Target href:', targetHref);
+    console.log('Current location:', window.location.href);
+    
+    // Navigate to the target URL
     window.location.href = targetHref;
 
     if (mobileMenu && mobileMenu.classList.contains('active')) {
+        console.log('Closing mobile menu after navigation');
         toggleMobileMenu(); // Close mobile menu after navigation
     }
 }
@@ -713,7 +811,9 @@ function renderProductDetails(product) {
 
 // Add to Cart functionality
 function addToCart() {
+    console.log('addToCart function called');
     if (!currentProduct) {
+        console.error('No current product data');
         showToast('Error: No product data.', true);
         return;
     }
@@ -943,7 +1043,9 @@ function addProductToCart(selectedVariations = {}) {
 
 // Buy Now functionality (placeholder)
 function buyNow() {
+    console.log('buyNow function called');
     if (!currentProduct) {
+        console.error('No current product data');
         showToast('Error: No product data.', true);
         return;
     }
@@ -1481,30 +1583,52 @@ function showSearchSuggestions(searchTerm) {
         const productDesc = product.description.toLowerCase();
         const categoriesArr = Array.isArray(product.categories) ? product.categories : [product.category];
         const productCategories = categoriesArr.map(cat => cat ? cat.toLowerCase() : '').join(' ');
+        const productKeywords = Array.isArray(product.keywords) ? product.keywords.map(k => k.toLowerCase()).join(' ') : '';
         
         return productName.includes(term) ||
                productDesc.includes(term) ||
-               productCategories.includes(term);
+               productCategories.includes(term) ||
+               productKeywords.includes(term);
     });
     
     // Sort by relevance
     matchingProducts.sort((a, b) => {
         const aName = a.name.toLowerCase();
         const bName = b.name.toLowerCase();
+        const aKeywords = Array.isArray(a.keywords) ? a.keywords.map(k => k.toLowerCase()) : [];
+        const bKeywords = Array.isArray(b.keywords) ? b.keywords.map(k => k.toLowerCase()) : [];
         
-        // Exact match gets highest priority
+        // Check match types for both products
+        const aNameMatch = aName.includes(term);
+        const bNameMatch = bName.includes(term);
+        const aKeywordMatch = aKeywords.some(keyword => keyword.includes(term));
+        const bKeywordMatch = bKeywords.some(keyword => keyword.includes(term));
+        
+        // Priority 1: Exact name match
         const aExactMatch = aName === term;
         const bExactMatch = bName === term;
         
         if (aExactMatch && !bExactMatch) return -1;
         if (!aExactMatch && bExactMatch) return 1;
         
-        // Then by name starts with
+        // Priority 2: Name starts with
         const aStartsWith = aName.startsWith(term);
         const bStartsWith = bName.startsWith(term);
         
         if (aStartsWith && !bStartsWith) return -1;
         if (!aStartsWith && bStartsWith) return 1;
+        
+        // Priority 3: Name contains (but not starts with)
+        if (aNameMatch && !bNameMatch) return -1;
+        if (!aNameMatch && bNameMatch) return 1;
+        
+        // Priority 4: Keyword match (only if name doesn't match)
+        if (!aNameMatch && aKeywordMatch && !bNameMatch && !bKeywordMatch) return -1;
+        if (!bNameMatch && bKeywordMatch && !aNameMatch && !aKeywordMatch) return 1;
+        
+        // Priority 5: Both name and keyword match - name takes priority
+        if (aNameMatch && aKeywordMatch && bNameMatch && !bKeywordMatch) return -1;
+        if (bNameMatch && bKeywordMatch && aNameMatch && !aKeywordMatch) return 1;
         
         // Finally alphabetically
         return aName.localeCompare(bName);
@@ -1515,7 +1639,25 @@ function showSearchSuggestions(searchTerm) {
     
     // Create suggestions dropdown
     const suggestionsContainer = document.querySelector('.search-suggestions') || createSearchSuggestionsContainer();
-    suggestionsContainer.innerHTML = searchSuggestions.map((product, index) => `
+    suggestionsContainer.innerHTML = searchSuggestions.map((product, index) => {
+        // Check match types
+        const productName = product.name.toLowerCase();
+        const productKeywords = Array.isArray(product.keywords) ? product.keywords.map(k => k.toLowerCase()) : [];
+        
+        const isNameMatch = productName.includes(term);
+        const isKeywordMatch = productKeywords.some(keyword => keyword.includes(term));
+        
+        // Determine match type for display
+        let matchType = '';
+        if (isNameMatch && isKeywordMatch) {
+            matchType = 'Name & Keyword match';
+        } else if (isNameMatch) {
+            matchType = 'Name match';
+        } else if (isKeywordMatch) {
+            matchType = 'Keyword match';
+        }
+        
+        return `
         <div class="suggestion-item product-suggestion" data-product-id="${product.id}" data-index="${index}">
             <div class="suggestion-product-image">
                 ${product.thumbnailUrl
@@ -1529,9 +1671,11 @@ function showSearchSuggestions(searchTerm) {
             <div class="suggestion-product-info">
                 <div class="suggestion-product-name">${product.name}</div>
                 <div class="suggestion-product-price">৳${product.price}</div>
+                ${matchType ? `<div class="suggestion-match-type" style="font-size: 11px; color: ${isNameMatch ? '#43a047' : '#f38124'}; margin-top: 2px;">✓ ${matchType}</div>` : ''}
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
     
     // Add click event listeners to suggestion items
     suggestionsContainer.querySelectorAll('.suggestion-item').forEach(item => {
@@ -1550,9 +1694,16 @@ function showSearchSuggestions(searchTerm) {
 
 // Create search suggestions container
 function createSearchSuggestionsContainer() {
+    console.log('Creating search suggestions container');
+    const searchBox = document.querySelector('.search-box');
+    if (!searchBox) {
+        console.error('Search box not found');
+        return null;
+    }
     const container = document.createElement('div');
     container.className = 'search-suggestions';
-    document.querySelector('.search-box').appendChild(container);
+    searchBox.appendChild(container);
+    console.log('Search suggestions container created');
     return container;
 }
 
@@ -1590,6 +1741,8 @@ function selectProductSuggestion(productId) {
 
 // On page load, fetch product details
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM Content Loaded');
+    
     // Check if we came from checkout and might be in a loop
     if (document.referrer.includes('/checkout/')) {
         // If we have an original referrer stored, we'll use it when back button is clicked
@@ -1597,11 +1750,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Load all products for search suggestions
+    console.log('Loading all products for search suggestions...');
     await loadAllProducts();
     
     const productId = getProductIdFromUrl();
+    console.log('Product ID from URL:', productId);
+    
     if (productId) {
-        fetchProductDetails(productId);
+        console.log('Fetching product details...');
+        await fetchProductDetails(productId);
+        console.log('Setting up event listeners...');
         setupEventListeners(); // Call setupEventListeners after DOM is loaded
         
         // Handle popstate for back button (without pushing extra state)
@@ -1613,10 +1771,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     } else {
+        console.log('No product ID provided');
         hideLoading();
         productDetailsContent.innerHTML = '';
         errorMessage.style.display = 'block';
         errorMessage.textContent = 'No product ID provided.';
         showToast('No product ID provided.', true);
+        
+        // Still set up event listeners for navigation and search
+        console.log('Setting up event listeners without product...');
+        setupEventListeners();
     }
 }); 

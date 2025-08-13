@@ -36,6 +36,9 @@
                     <button id="login-btn" class="login-btn">
                         <i class="fab fa-google"></i> Login with Google
                     </button>
+                    <button id="login-phone-btn" class="login-btn">
+                        <i class="fas fa-mobile-alt"></i> Login with Phone
+                    </button>
                 </div>
                 <button id="logout-btn" class="logout-btn" style="display: none;">Logout</button>
             </div>
@@ -73,6 +76,72 @@
                     <div class="form-actions">
                         <button type="submit" class="save-btn">Save Changes</button>
                         <button type="button" class="cancel-btn" id="cancel-profile-btn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Phone Login Modal (hidden by default) -->
+        <div id="phone-login-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Login with Phone</h3>
+                    <button class="close-modal" id="close-phone-modal">&times;</button>
+                </div>
+                <form id="phone-login-form" class="account-form">
+                    <div class="form-group">
+                        <label for="phone-number">Phone Number</label>
+                        <input type="tel" id="phone-number" placeholder="e.g. +8801XXXXXXXXX" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="save-btn" id="send-otp-btn">Send Code</button>
+                        <button type="button" class="cancel-btn" id="cancel-phone-btn">Cancel</button>
+                    </div>
+                    <div id="otp-section" style="display:none; margin-top: 1rem;">
+                        <div class="form-group">
+                            <label for="otp-code">Enter Verification Code</label>
+                            <input type="text" id="otp-code" placeholder="6-digit code">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="save-btn" id="verify-otp-btn">Verify Code</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- First-time Profile Completion Modal (hidden by default) -->
+        <div id="complete-profile-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Complete Your Profile</h3>
+                    <button class="close-modal" id="close-complete-profile">&times;</button>
+                </div>
+                <form id="complete-profile-form" class="account-form">
+                    <div class="form-group" id="cp-name-group">
+                        <label for="cp-name">Full Name</label>
+                        <input type="text" id="cp-name" required>
+                    </div>
+                    <div class="form-group" id="cp-gender-group">
+                        <label for="cp-gender">Gender</label>
+                        <select id="cp-gender">
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="cp-phone-group">
+                        <label for="cp-phone">Phone Number</label>
+                        <input type="tel" id="cp-phone" placeholder="e.g. +8801XXXXXXXXX">
+                    </div>
+                    <div class="form-group" id="cp-email-group">
+                        <label for="cp-email">Email Address (optional)</label>
+                        <input type="email" id="cp-email" placeholder="example@mail.com">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="save-btn" id="cp-save-btn">Save</button>
+                        <button type="button" class="cancel-btn" id="cp-cancel-btn">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -137,11 +206,18 @@
             <i class="fas fa-shopping-cart"></i>
             <span>Cart</span>
         </a>
+        <a href="../message/index.html" class="bottom-nav-link">
+            <i class="fas fa-comments"></i>
+            <span>Message</span>
+        </a>
         <a href="#" class="bottom-nav-link active">
             <i class="fas fa-user"></i>
             <span>Account</span>
         </a>
     </nav>
+
+    <!-- Hidden reCAPTCHA container for phone login (invisible) -->
+    <div id="recaptcha-container" style="visibility:hidden; height:0; overflow:hidden;"></div>
 
     <script type="module" src="app.js"></script>
 </body>

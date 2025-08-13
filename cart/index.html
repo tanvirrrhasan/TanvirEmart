@@ -11,7 +11,8 @@
     <div class="cart-page-container">
         <!-- Cart Sidebar - Re-purposed as main cart content for cart page -->
         <div class="cart-sidebar active" id="cart-sidebar">
-            <div class="cart-header">
+            <div class="cart-header" id="cartHeader">
+                <button class="back-button" id="backButton" onclick="goBack()" style="display: none;">← Back</button>
                 <h3>Shopping Cart</h3>
             </div>
             <div class="cart-items" id="cart-items">
@@ -32,6 +33,7 @@
         <a href="../index.html#banner" class="bottom-nav-link" id="nav-home"><i class="fas fa-home"></i><span>Home</span></a>
         <a href="../index.html#categories" class="bottom-nav-link" id="nav-category"><i class="fas fa-th-large"></i><span>Category</span></a>
         <a href="#" class="bottom-nav-link active" id="nav-cart"><i class="fas fa-shopping-cart"></i><span>Cart <span id="cart-count">0</span></span></a>
+        <a href="../message/index.html" class="bottom-nav-link" id="nav-message"><i class="fas fa-comments"></i><span>Message</span></a>
         <a href="/account/" class="bottom-nav-link" id="nav-account"><i class="fas fa-user"></i><span>Account</span></a>
     </nav>
 
